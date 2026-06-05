@@ -139,6 +139,7 @@ body {
 .actions {
   flex-shrink: 0; padding: 12px 16px;
   background: var(--bg-light); border-top: 1px solid var(--gold-dim);
+  max-height: 45vh; overflow-y: auto;
 }
 .btn-row {
   display: grid; grid-template-columns: 1fr 1fr;
@@ -204,6 +205,10 @@ body {
   border-radius: 12px; width: 100%; max-width: 460px; max-height: 75vh;
   display: flex; flex-direction: column;
 }
+.modal.graph-mode { max-width: 95vw; max-height: 90vh; width: 95vw; height: 90vh; }
+.graph-viewport { overflow: hidden; position: relative; touch-action: none; flex: 1; min-height: 0; cursor: grab; }
+.graph-viewport:active { cursor: grabbing; }
+.graph-viewport canvas { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
 .modal-header {
   padding: 14px 16px; border-bottom: 1px solid var(--gold-dim);
   display: flex; justify-content: space-between; align-items: center;
@@ -285,6 +290,7 @@ body {
   background: rgba(0,0,0,0.92); gap: 24px;
   animation: sceneFadeIn 0.3s ease;
   max-width: 500px; margin: 0 auto;
+  pointer-events: none;
 }
 .scene-popup .scene-title {
   order: -1;
@@ -346,10 +352,26 @@ body {
   50% { transform: translateX(15px); }
 }
 .scene-walk { animation: walkBounce 0.8s ease-in-out infinite; }
-@keyframes combatClash {
-  0%,100% { transform: translateX(0); }
+@keyframes clashLeft {
+  0% { transform: translateX(-60px); }
   40% { transform: translateX(10px); }
-  60% { transform: translateX(-3px); }
+  50% { transform: translateX(0); }
+  60% { transform: translateX(-5px); }
+  100% { transform: translateX(-60px); }
+}
+@keyframes clashRight {
+  0% { transform: translateX(60px); }
+  40% { transform: translateX(-10px); }
+  50% { transform: translateX(0); }
+  60% { transform: translateX(5px); }
+  100% { transform: translateX(60px); }
+}
+@keyframes clashSpark {
+  0%,30% { transform: scale(0); opacity: 0; }
+  40% { transform: scale(2); opacity: 1; }
+  50% { transform: scale(3); opacity: 1; }
+  60% { transform: scale(1); opacity: 0.5; }
+  70%,100% { transform: scale(0); opacity: 0; }
 }
 
 .px-fight-left .px-body { background: #5dade2; }
@@ -543,7 +565,7 @@ body {
       <span id="playerName"></span> (<span id="playerGender"></span>) · <span id="playerOrigin"></span> · <span id="playerSect"></span> · <span id="playerRealm"></span> · 寿元 <span id="playerLife"></span>
     </div>
     <div class="player-res">
-      灵石 <span id="playerLingshi" class="lingshi">0</span> · 位置（<span id="playerPos"></span>）<span id="posQi"></span><span id="playerInfamy"></span>
+      灵石 <span id="playerLingshi" class="lingshi">0</span> · 战力 <span id="playerPower" style="color:var(--blue)">0</span><span id="playerFollowers"></span> · 位置（<span id="playerPos"></span>）<span id="posQi"></span><span id="playerInfamy"></span>
     </div>
     <div class="bars-wrap">
       <div class="progress-bar">
@@ -559,6 +581,7 @@ body {
     <div id="menuDropdown" class="menu-dropdown">
       <button class="menu-item" onclick="showInventory()">背包</button>
       <button class="menu-item" onclick="showMemory()">记忆录</button>
+      <button class="menu-item" onclick="showAiSettings()">AI设置</button>
       <button class="menu-item" onclick="exportSave()">导出存档</button>
       <button class="menu-item" onclick="importSave()">导入存档</button>
       <button class="menu-item" onclick="restartGame()">重新开始</button>
@@ -631,8 +654,14 @@ body {
 <div id="marketModal" class="modal-overlay" onclick="if(event.target===this)closeMarket()">
   <div class="modal">
     <div class="modal-header">
-      <h3>坊市</h3>
-      <button class="modal-close" onclick="closeMarket()">✕</button>
+      <h3>坊市 · <span id="marketLingshi" style="color:var(--gold);font-size:14px"></span></h3>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button class="btn btn-sm market-tab" data-tab="pill" onclick="showMarket('pill')" style="min-height:28px;padding:3px 8px;font-size:12px">丹药</button>
+        <button class="btn btn-sm market-tab" data-tab="skill" onclick="showMarket('skill')" style="min-height:28px;padding:3px 8px;font-size:12px">功法</button>
+        <button class="btn btn-sm market-tab" data-tab="sell" onclick="showMarket('sell')" style="min-height:28px;padding:3px 8px;font-size:12px">出售</button>
+        <button class="btn btn-sm market-tab" data-tab="bounty" onclick="showMarket('bounty')" style="min-height:28px;padding:3px 8px;font-size:12px">悬赏</button>
+        <button class="modal-close" onclick="closeMarket()">✕</button>
+      </div>
     </div>
     <div class="modal-body" id="marketBody"></div>
   </div>
@@ -669,8 +698,8 @@ body {
       </div>
     </div>
     <div id="memoryBody" class="modal-body"></div>
-    <div id="memoryGraph" class="modal-body hidden" style="padding:8px;display:flex;justify-content:center">
-      <canvas id="relationCanvas" width="400" height="400" style="max-width:100%;border-radius:8px;background:var(--bg)"></canvas>
+    <div id="memoryGraph" class="hidden graph-viewport">
+      <canvas id="relationCanvas" width="1200" height="1000"></canvas>
     </div>
   </div>
 </div>
@@ -1134,6 +1163,11 @@ function getRealmDiff(nRI, nSI, pRI, pSI) {
 }
 
 function getRelationLabel(v, isOpp, isChild, npcId) {
+  if (npcId && game && game.memoryStore) {
+    const npcObj = game.memoryStore.getById(npcId);
+    if (npcObj && npcObj.role === 'concubine') return game.player.gender === '男' ? '侍妾' : '男宠';
+    if (npcObj && npcObj.role === 'puppet') return '傀儡';
+  }
   if (isChild && npcId) {
     const npc = game && game.memoryStore ? game.memoryStore.getById(npcId) : null;
     if (npc && npc.motherNpcId) {
@@ -1225,6 +1259,7 @@ class NPC {
     this.motherNpcId = d.motherNpcId || null;
     this.spouse = d.spouse || null;
     this.masterNpcId = d.masterNpcId || null;
+    this.role = d.role || null;
   }
   getRealmName() { return getRealmFullName(this.realmIndex, this.stageIndex); }
   get isMinor() { return this.age !== null && this.age < 20; }
@@ -1236,8 +1271,19 @@ class NPC {
 
 class Generator {
   createRandomNPC(playerRI, override = {}) {
-    const off = randInt(-1, 1);
-    const ri = Math.max(0, Math.min(REALMS.length - 1, playerRI + off));
+    const maxRI = Math.min(playerRI + 1, REALMS.length - 1);
+    const weights = [];
+    for (let i = 0; i <= maxRI; i++) {
+      const w = Math.pow(0.45, i);
+      weights.push(w);
+    }
+    const total = weights.reduce((a, b) => a + b, 0);
+    let roll = Math.random() * total;
+    let ri = 0;
+    for (let i = 0; i < weights.length; i++) {
+      roll -= weights[i];
+      if (roll <= 0) { ri = i; break; }
+    }
     const r = REALMS[ri];
     const si = randInt(0, r.stages.length - 1);
     const defaults = {
@@ -1523,6 +1569,8 @@ class Game {
       bonds: [],
       master: null,
       disciples: [],
+      concubines: [],
+      puppets: [],
       worldYear: 1,
       infamy: 0,
       hunters: [],
@@ -1538,6 +1586,8 @@ class Game {
       if (p.inventory.huixuedan === undefined) p.inventory.huixuedan = 0;
       if (p.inventory.xunzongfu === undefined) p.inventory.xunzongfu = 0;
       if (!p.origin) p.origin = 'mortal';
+      if (!p.concubines) p.concubines = [];
+      if (!p.puppets) p.puppets = [];
       if (!p.stats) p.stats = { kills: 0, explored: 0, meditateYears: 0, lingshiEarned: 0, pillsUsed: 0, moved: 0, npcMet: 0, peakRealm: getRealmFullName(p.realmIndex, p.stageIndex) };
       this.player = p;
     } else {
@@ -1594,20 +1644,28 @@ class Game {
       npc.lifeCurrent -= years;
       if (npc.lifeCurrent <= 0) {
         npc.isAlive = false;
+        if (npc.role === 'concubine') this.player.concubines = (this.player.concubines||[]).filter(id => id !== npc.id);
+        if (npc.role === 'puppet') this.player.puppets = (this.player.puppets||[]).filter(id => id !== npc.id);
         const rel = npc.getRelation(this.player.id);
         const bonds = this.player.bonds || [];
         const isBond = bonds.includes(npc.id);
         const isMaster = this.player.master === npc.id;
         const isDisciple = (this.player.disciples || []).includes(npc.id);
         const isChild = npc.isChild || npc.motherNpcId;
+        const isConcubine = npc.role === 'concubine';
+        const isPuppet = npc.role === 'puppet';
+        const causes = ['寿元耗尽','修炼走火入魔','遭妖兽袭击','突破失败灵力反噬','被仇家追杀','陨落于秘境之中','遭遇天劫'];
+        const cause = npc.lifeCurrent <= -20 ? '寿元耗尽' : randPick(causes);
         let deathMsg = '';
-        if (npc.spouse === '__player__') deathMsg = `噩耗——你的道侣<span class="npc-name">${npc.name}</span>寿元已尽！`;
-        else if (isChild) deathMsg = `噩耗——你的${npc.gender === '男' ? '儿子' : '女儿'}<span class="npc-name">${npc.name}</span>陨落了！`;
-        else if (isMaster) deathMsg = `悲痛——你的师父<span class="npc-name">${npc.name}</span>仙逝了……`;
-        else if (isDisciple) deathMsg = `你的徒弟<span class="npc-name">${npc.name}</span>不幸身陨！`;
-        else if (isBond) deathMsg = `至交<span class="npc-name">${npc.name}</span>已经陨落……`;
-        else if (rel >= 30) deathMsg = `传闻好友${npc.name}已陨落。`;
-        else if (npc.isPermanent) { this.log(`传闻${npc.name}已陨落。`, ''); continue; }
+        if (isConcubine) deathMsg = `你的${this.player.gender === '男' ? '侍妾' : '男宠'}<span class="npc-name">${npc.name}</span>因${cause}而陨落！`;
+        else if (isPuppet) deathMsg = `你的傀儡<span class="npc-name">${npc.name}</span>因${cause}而损毁！`;
+        else if (npc.spouse === '__player__') deathMsg = `噩耗——你的道侣<span class="npc-name">${npc.name}</span>因${cause}而陨落！`;
+        else if (isChild) deathMsg = `噩耗——你的${npc.gender === '男' ? '儿子' : '女儿'}<span class="npc-name">${npc.name}</span>因${cause}而陨落！`;
+        else if (isMaster) deathMsg = `悲痛——你的师父<span class="npc-name">${npc.name}</span>因${cause}而仙逝……`;
+        else if (isDisciple) deathMsg = `你的徒弟<span class="npc-name">${npc.name}</span>因${cause}而身陨！`;
+        else if (isBond) deathMsg = `至交<span class="npc-name">${npc.name}</span>因${cause}而陨落……`;
+        else if (rel >= 30) deathMsg = `传闻好友${npc.name}因${cause}而陨落。`;
+        else if (npc.isPermanent) { this.log(`传闻${npc.name}因${cause}而陨落。`, ''); continue; }
         if (deathMsg) {
           showScenePopup('danger', npc.name + ' 陨落', 2000);
           this.log(deathMsg, 'danger');
@@ -1636,6 +1694,34 @@ class Game {
         this.placeNpcOnMap(npc); npc.tempTurns = 3;
       }
     }
+    for (const npc of this.memoryStore.getAlive()) {
+      const bonds = this.player.bonds || [];
+      const isClose = bonds.includes(npc.id) || this.player.master === npc.id ||
+        (this.player.disciples||[]).includes(npc.id) || npc.isChild || npc.motherNpcId;
+      if (!isClose) continue;
+      if (npc.rescueTask) {
+        npc.lifeCurrent = Math.max(npc.lifeCurrent, 10);
+      }
+      if (npc.lifeCurrent > 0 && !npc.rescueTask && Math.random() < 0.05) {
+        const rescueTypes = [
+          { msg: '被歹人追杀，速来援助', type: 'fight', desc: '击退歹人' },
+          { msg: '遭遇强敌，需要帮手', type: 'fight', desc: '击退强敌' },
+          { msg: '急需突破丹药，你可有', type: 'pill', desc: '送突破丹药' },
+          { msg: '灵石告急，能否接济', type: 'lingshi', desc: '接济灵石' },
+        ];
+        const rt = randPick(rescueTypes);
+        this.placeNpcOnMap(npc);
+        npc.tempTurns = 20;
+        npc.rescueTask = rt;
+        let pos = '';
+        for (let y = 0; y < MAP_SIZE; y++)
+          for (let x = 0; x < MAP_SIZE; x++)
+            if ((this.mapSystem.grid[y][x].npcIds||[]).includes(npc.id)) pos = `（${x+1},${y+1}）`;
+        showScenePopup('danger', npc.name + ' 求救', 2500);
+        this.log(`<span class="npc-name">${npc.name}</span>传来求救：「${rt.msg}！我在${pos}，快来！」`, 'danger');
+      }
+    }
+
     if (this.player.lifeCurrent <= 0) {
       this.die('你的寿元已尽，道消身陨……游戏结束。');
     }
@@ -1669,6 +1755,63 @@ class Game {
     const x = randInt(0, MAP_SIZE - 1), y = randInt(0, MAP_SIZE - 1);
     if (!this.mapSystem.grid[y][x].npcIds) this.mapSystem.grid[y][x].npcIds = [];
     this.mapSystem.grid[y][x].npcIds.push(npc.id);
+  }
+
+  moveFollowers() {
+    const ids = [...(this.player.concubines || []), ...(this.player.puppets || [])];
+    for (const id of ids) {
+      const npc = this.memoryStore.getById(id);
+      if (npc && npc.isAlive) this.placeNpcAtPlayer(npc);
+    }
+  }
+
+  getFollowerAtk() {
+    let atk = 0;
+    for (const id of (this.player.concubines || [])) {
+      const npc = this.memoryStore.getById(id);
+      if (npc && npc.isAlive) atk += getTotalPower(npc.realmIndex, npc.stageIndex) * 4;
+    }
+    for (const id of (this.player.puppets || [])) {
+      const npc = this.memoryStore.getById(id);
+      if (npc && npc.isAlive) atk += getTotalPower(npc.realmIndex, npc.stageIndex) * 6;
+    }
+    return atk;
+  }
+
+  getFollowerNames() {
+    const names = [];
+    for (const id of (this.player.concubines || [])) {
+      const npc = this.memoryStore.getById(id);
+      if (npc && npc.isAlive) names.push(npc.name + '(侍)');
+    }
+    for (const id of (this.player.puppets || [])) {
+      const npc = this.memoryStore.getById(id);
+      if (npc && npc.isAlive) names.push(npc.name + '(傀)');
+    }
+    return names;
+  }
+
+  dismissFollower(npcId) {
+    const npc = this.memoryStore.getById(npcId);
+    if (!npc) return;
+    if (npc.role === 'concubine') {
+      this.player.concubines = (this.player.concubines || []).filter(id => id !== npcId);
+      npc.role = null;
+      const label = this.player.gender === '男' ? '侍妾' : '男宠';
+      this.log(`你释放了${label}${npc.name}，让其自行离去。`, 'system');
+    } else if (npc.role === 'puppet') {
+      this.player.puppets = (this.player.puppets || []).filter(id => id !== npcId);
+      npc.role = null;
+      npc.isAlive = false;
+      this.log(`你解除了傀儡${npc.name}的术法，其灵体消散。`, 'system');
+    }
+    this.removeNpcFromCell(npc);
+    if (npc.isAlive) this.placeNpcOnMap(npc);
+    this.memoryStore.save();
+    this.save();
+    this.updateHeader();
+    this.updateNpcBtn();
+    this.showMainActions();
   }
 
   applyOriginRelation(npc) {
@@ -1721,6 +1864,15 @@ class Game {
     else if (infamy >= 30) infamyText = ' · <span style="color:#e67e22">恶名远播</span>';
     document.getElementById('playerInfamy').innerHTML = infamyText;
     document.getElementById('worldYear').textContent = p.worldYear || 1;
+    const skillPow = p.activeSkill ? (getSkillById(p.activeSkill)||{}).power||0 : 0;
+    const totalPow = getTotalPower(p.realmIndex, p.stageIndex) * 8 + this.getPlayerTreasurePower() + skillPow;
+    document.getElementById('playerPower').textContent = p.origin === 'demon' ? Math.floor(totalPow * 1.2) : totalPow;
+    const cc = (p.concubines || []).filter(id => { const n = this.memoryStore.getById(id); return n && n.isAlive; }).length;
+    const pp = (p.puppets || []).filter(id => { const n = this.memoryStore.getById(id); return n && n.isAlive; }).length;
+    let fText = '';
+    if (cc > 0) fText += ` · <span style="color:var(--pink)">侍${cc}</span>`;
+    if (pp > 0) fText += ` · <span style="color:#9b59b6">傀${pp}</span>`;
+    document.getElementById('playerFollowers').innerHTML = fText;
 
     const maxExp = REALMS[p.realmIndex].expPerStage;
     const atMax = isMaxRealm(p.realmIndex, p.stageIndex);
@@ -1762,8 +1914,15 @@ class Game {
     const npcIds = (cell && cell.npcIds) ? cell.npcIds.filter(id => { const n = this.memoryStore.getById(id); return n && n.isAlive; }) : [];
     if (npcIds.length > 0) {
       row.classList.remove('hidden');
-      const names = npcIds.map(id => this.memoryStore.getById(id).name);
-      document.getElementById('npcBtnText').textContent = `此处有人（${npcIds.length}）：${names.join('、')}`;
+      const rescueNpc = npcIds.map(id => this.memoryStore.getById(id)).find(n => n && n.rescueTask);
+      if (rescueNpc) {
+        document.getElementById('npcBtnText').textContent = `救援 ${rescueNpc.name}（${rescueNpc.rescueTask.desc}）`;
+        document.getElementById('npcBtnText').onclick = () => this.doRescue(rescueNpc);
+      } else {
+        const names = npcIds.map(id => this.memoryStore.getById(id).name);
+        document.getElementById('npcBtnText').textContent = `此处有人（${npcIds.length}）：${names.join('、')}`;
+        document.getElementById('npcBtnText').onclick = showNpcHere;
+      }
       return;
     }
     row.classList.add('hidden');
@@ -1796,7 +1955,7 @@ class Game {
     div.className = 'log-entry' + (type ? ' ' + type : '');
     div.innerHTML = text;
     area.appendChild(div);
-    requestAnimationFrame(() => area.scrollTop = area.scrollHeight);
+    requestAnimationFrame(() => { area.scrollTop = area.scrollHeight; setTimeout(() => area.scrollTop = area.scrollHeight, 100); });
   }
 
   hideAllActions() {
@@ -1871,6 +2030,112 @@ class Game {
       row.appendChild(btn);
     }
     container.appendChild(row);
+    if (localStorage.getItem('xiuxian_ai_enabled') === 'true' && localStorage.getItem('xiuxian_ai_key')) {
+      const chatRow = document.createElement('div');
+      chatRow.style.cssText = 'display:flex;gap:6px;margin-top:6px';
+      chatRow.innerHTML = `<input id="npcChatInput" placeholder="自由对话..." style="flex:1;background:var(--bg);color:var(--text);border:1px solid var(--gold-dim);border-radius:6px;padding:8px;font-size:13px;font-family:inherit"><button class="btn btn-sm" onclick="game.aiReplyToNpc()">发送</button>`;
+      container.appendChild(chatRow);
+    }
+  }
+
+  aiReplyToNpc() {
+    const input = document.getElementById('npcChatInput');
+    if (!input || !input.value.trim() || !this.currentNPC) return;
+    const msg = input.value.trim();
+    const npc = this.currentNPC;
+    input.value = '';
+    this.log(`你：<span class="dialogue">"${msg}"</span>`, 'player-speech');
+    this.log(`<span style="color:var(--text-dim)">${npc.name}思索中……</span>`, '');
+    aiChat(npc, msg).then(reply => {
+      const area = document.getElementById('logArea');
+      if (area.lastChild) area.removeChild(area.lastChild);
+      if (reply) {
+        const { text, cmds } = this.parseAiCommands(reply, npc);
+        this.log(`<span class="npc-name">${npc.name}</span>：<span class="dialogue">"${text}"</span>`);
+        for (const cmd of cmds) this.executeAiCommand(cmd, npc);
+      } else {
+        const fallback = this.dialogueEngine.getDialogue(npc, this.player);
+        this.log(`<span class="npc-name">${npc.name}</span>：<span class="dialogue">"${fallback}"</span>`);
+      }
+      this.updateHeader(); this.save();
+    });
+  }
+
+  parseAiCommands(reply, npc) {
+    const cmds = [];
+    let text = reply;
+    const patterns = [
+      { re: /\[送灵石[：:](\d+)\]/g, type: 'giveLingshi' },
+      { re: /\[送丹药\]/g, type: 'givePill' },
+      { re: /\[好感\+(\d+)\]/g, type: 'relUp' },
+      { re: /\[好感-(\d+)\]/g, type: 'relDown' },
+      { re: /\[双修\]/g, type: 'dual' },
+      { re: /\[表白\]/g, type: 'propose' },
+      { re: /\[结拜\]/g, type: 'bond' },
+      { re: /\[传功[：:](\d+)\]/g, type: 'teachExp' },
+    ];
+    for (const p of patterns) {
+      let m;
+      while ((m = p.re.exec(reply)) !== null) {
+        cmds.push({ type: p.type, value: m[1] ? parseInt(m[1]) : 0 });
+      }
+      text = text.replace(p.re, '');
+    }
+    return { text: text.trim(), cmds };
+  }
+
+  executeAiCommand(cmd, npc) {
+    const p = this.player;
+    if (cmd.type === 'giveLingshi') {
+      const v = Math.min(cmd.value, Math.max(50, npc.realmIndex * 30));
+      p.inventory.lingshi += v;
+      this.trackStat('lingshiEarned', v);
+      this.log(`${npc.name}赠你 ${v} 灵石。`, 'success');
+    } else if (cmd.type === 'givePill') {
+      const maxR = Math.min(npc.realmIndex + 1, 7);
+      const avail = PILLS.filter(pp => pp.forRealm <= maxR);
+      if (avail.length) {
+        const dp = randPick(avail);
+        p.inventory.pills[dp.id] = (p.inventory.pills[dp.id] || 0) + 1;
+        this.log(`${npc.name}赠你一颗<span class="npc-name">${dp.name}</span>。`, 'loot');
+      }
+    } else if (cmd.type === 'relUp') {
+      const v = Math.min(cmd.value, 10);
+      npc.changeRelation(p.id, v);
+      this.log(`好感度 +${v}`, 'success');
+    } else if (cmd.type === 'relDown') {
+      const v = Math.min(cmd.value, 10);
+      npc.changeRelation(p.id, -v);
+      this.log(`好感度 -${v}`, 'danger');
+    } else if (cmd.type === 'dual' && (npc.spouse === '__player__' || npc.role === 'concubine')) {
+      showScenePopup('dual', '双 修', 2000);
+      this.worldTick(1);
+      if (this.isDead) return;
+      const expGain = randInt(40, 100);
+      const hpGain = Math.floor(p.hpMax * 0.2);
+      p.exp = Math.min(p.exp + expGain, REALMS[p.realmIndex].expPerStage);
+      p.hp = Math.min(p.hpMax, p.hp + hpGain);
+      p.lifeCurrent += randInt(2, 5);
+      this.log(`与${npc.name}双修，修为+${expGain}，气血+${hpGain}。`, 'pink');
+    } else if (cmd.type === 'propose' && !npc.isChild) {
+      showScenePopup('dual', '结 为 道 侣', 2000);
+      if (!p.bonds) p.bonds = [];
+      if (!p.bonds.includes(npc.id)) p.bonds.push(npc.id);
+      npc.spouse = '__player__';
+      npc.changeRelation(p.id, 30);
+      this.log(`【${npc.name}成为你的道侣】`, 'pink');
+    } else if (cmd.type === 'bond' && !npc.isChild) {
+      showScenePopup('bond', '义 结 金 兰', 2000);
+      if (!p.bonds) p.bonds = [];
+      if (!p.bonds.includes(npc.id)) p.bonds.push(npc.id);
+      npc.changeRelation(p.id, 20);
+      this.log(`【与${npc.name}结拜】`, 'success');
+    } else if (cmd.type === 'teachExp' && p.master === npc.id) {
+      const v = Math.min(cmd.value, 50);
+      p.exp = Math.min(p.exp + v, REALMS[p.realmIndex].expPerStage);
+      this.log(`师父传功，修为+${v}。`, 'success');
+    }
+    this.memoryStore.save();
   }
 
   handleReply(npc, opt, idx) {
@@ -1903,6 +2168,41 @@ class Game {
     const rel = npc.getRelation(this.player.id);
     const isOpp = npc.gender !== this.player.gender;
     const isBonded = (this.player.bonds || []).includes(npc.id);
+    const isConcubine = npc.role === 'concubine';
+    const isPuppet = npc.role === 'puppet';
+
+    if (isPuppet) {
+      container.innerHTML = `<div style="color:var(--text-dim);font-size:13px;margin-bottom:6px">${npc.name}（傀儡）面无表情地等待命令。</div>
+        <div class="btn-row" style="grid-template-columns:1fr 1fr">
+          <button class="btn" style="color:var(--red)" onclick="game.dismissFollower('${npc.id}')">解除傀儡</button>
+          <button class="btn" onclick="game.interact('leave')">离开</button>
+        </div>`;
+      this.inEncounter = true;
+      return;
+    }
+
+    if (isConcubine) {
+      const label = this.player.gender === '男' ? '侍妾' : '男宠';
+      const cRel = npc.getRelation(this.player.id);
+      let cAttitude, cColor;
+      if (cRel <= -30) { cAttitude = `${npc.name}面如死灰，眼神空洞，机械地行礼："主人……有何吩咐。"`; cColor = 'var(--text-dim)'; }
+      else if (cRel <= -10) { cAttitude = `${npc.name}微微发抖，畏惧地低下头："主人……奴婢在。"`; cColor = '#888'; }
+      else if (cRel <= 15) { cAttitude = `${npc.name}恭敬地站在一旁，表情平淡："主人有事请吩咐。"`; cColor = 'var(--text-dim)'; }
+      else if (cRel <= 40) { cAttitude = `${npc.name}微微一笑，柔声道："主人回来了。"`; cColor = 'var(--text)'; }
+      else if (cRel <= 60) { cAttitude = `${npc.name}眼中带笑，主动迎上来："主人，想你了。"`; cColor = 'var(--pink)'; }
+      else { cAttitude = `${npc.name}满脸幸福地偎依过来："能陪在主人身边，真好。"`; cColor = 'var(--pink)'; }
+      container.innerHTML = `<div style="color:${cColor};font-size:13px;margin-bottom:6px">${cAttitude}<span style="color:var(--text-dim);font-size:11px">（${label} · 好感${cRel}）</span></div>
+        <div class="btn-row three">
+          <button class="btn btn-pink" onclick="game.interact('dual')">双修</button>
+          <button class="btn" onclick="game.interact('gift')">赠礼</button>
+          <button class="btn" style="color:var(--red)" onclick="game.dismissFollower('${npc.id}')">释放</button>
+        </div>
+        <div class="btn-row">
+          <button class="btn" onclick="game.interact('leave')" style="grid-column:1/-1">离开</button>
+        </div>`;
+      this.inEncounter = true;
+      return;
+    }
 
     let row1 = '<div class="btn-row three">';
     row1 += '<button class="btn" onclick="game.interact(\'spar\')">切磋</button>';
@@ -1966,6 +2266,7 @@ class Game {
     this.save();
     closeMap();
 
+    this.moveFollowers();
     this.updateNpcBtn();
     if (cell.type === 'normal' && (!cell.npcIds || !cell.npcIds.length) && Math.random() < 0.15) {
       this.triggerRandomEvent();
@@ -2095,10 +2396,13 @@ class Game {
       this.log(`你发现了一件宝物——<span class="npc-name">${t.name}</span>（战力+${t.power}）！`, 'loot');
     } else if (roll < 0.68) {
       this.encounterMonster();
+      return;
     } else if (roll < 0.78) {
       this.triggerRandomEvent();
+      return;
     } else if (roll < 0.88) {
       this.encounterCultivator();
+      return;
     } else {
       if (Math.random() < 0.1) {
         this.player.inventory.xunzongfu = (this.player.inventory.xunzongfu || 0) + 1;
@@ -2181,12 +2485,18 @@ class Game {
     const isFriend = rel >= 30;
     const diff = getRealmDiff(npc.realmIndex, npc.stageIndex, this.player.realmIndex, this.player.stageIndex);
 
+    const realmGap = npc.realmIndex - this.player.realmIndex;
+    const npcFarStronger = realmGap >= 2;
+
     let eventType;
     if (isEnemy || p.aggroChance > 0.2) eventType = Math.random() < 0.7 ? 'bad' : 'neutral';
     else if (isFriend) eventType = Math.random() < 0.7 ? 'good' : 'neutral';
     else { const r = Math.random(); eventType = r < 0.35 ? 'good' : r < 0.65 ? 'neutral' : 'bad'; }
-    if (diff === 'higher' && !isFriend && Math.random() < 0.4) eventType = 'bad';
+    if (diff === 'higher' && !isFriend && !npcFarStronger && Math.random() < 0.4) eventType = 'bad';
     if (diff === 'lower' && !isEnemy && Math.random() < 0.3) eventType = 'good';
+    if (npcFarStronger && !isEnemy && eventType === 'bad') {
+      eventType = Math.random() < 0.5 ? 'neutral' : 'good';
+    }
 
     const outcome = randPick(eventType === 'good' ? GOOD_OUTCOMES : eventType === 'bad' ? BAD_OUTCOMES : NEUTRAL_OUTCOMES);
     const desc = outcome.text.replace(/\{NPC\}/g, npc.name).replace(/\{v\}/g, '');
@@ -2400,15 +2710,18 @@ class Game {
     const isOpp = npc.gender !== this.player.gender;
     const relLabel = getRelationLabel(rel, isOpp, npc.isChild, npc.id);
 
+    const npcPower = getTotalPower(npc.realmIndex, npc.stageIndex) * 8 + randInt(0, 15);
     let intro = `你遇到了<span class="npc-name">${npc.name}</span> (${npc.gender})`;
-    intro += `<br>「${npc.sect}」· <span class="realm-text">${npc.getRealmName()}</span> · 性情${pName}`;
+    intro += `<br>「${npc.sect}」· <span class="realm-text">${npc.getRealmName()}</span> · 性情${pName} · <span style="color:var(--blue)">战力${npcPower}</span>`;
     if (isOld) intro += `<br>（旧识 · ${relLabel}）`;
     this.log(intro);
 
     const p = PERSONALITIES[npc.personality];
     const isEnemy = getRelationCategory(rel, npc.isChild, npc.id) === 'enemy';
 
-    if ((isEnemy && Math.random() < 0.7) || (!isEnemy && Math.random() < p.aggroChance)) {
+    const realmGap2 = npc.realmIndex - this.player.realmIndex;
+    const tooWeakToRob = realmGap2 >= 2 && !isEnemy;
+    if (!tooWeakToRob && ((isEnemy && Math.random() < 0.7) || (!isEnemy && Math.random() < p.aggroChance))) {
       this.log(`<span class="npc-name">${npc.name}</span>：<span class="dialogue">"${isEnemy ? '仇人见面，纳命来！' : '识趣的把身上值钱的都交出来！'}"</span>`, 'combat');
       this.log(`${npc.name}对你发起了攻击！`, 'danger');
       this.resolveCombatWithNPC(npc, isOld);
@@ -2446,26 +2759,160 @@ class Game {
     this.hideAllActions();
     const container = document.getElementById('dialogueActions');
     container.classList.remove('hidden');
-    container.innerHTML = `
-      <div class="btn-row three">
-        <button class="btn btn-reply" onclick="game.resolveVictory('release')">放他走</button>
-        <button class="btn btn-reply" onclick="game.resolveVictory('loot')">搜刮储物袋</button>
-        <button class="btn btn-reply" onclick="game.resolveVictory('interrogate')">逼问情报</button>
+    const isOpp = npc.gender !== this.player.gender;
+    let html = '';
+    if (isOpp && !npc.isChild) {
+      const label = this.player.gender === '男' ? '收为侍妾' : '收为男宠';
+      html = `<div class="btn-row three">
+        <button class="btn btn-reply" style="color:#e74c3c" onclick="game.resolveVictory('furnace')">炼成炉鼎</button>
+        <button class="btn btn-reply" style="color:var(--pink)" onclick="game.resolveVictory('concubine')">${label}</button>
+        <button class="btn btn-reply" style="color:var(--red)" onclick="game.resolveVictory('kill')">杀掉</button>
       </div>
-    `;
+      <div class="btn-row three">
+        <button class="btn btn-reply" onclick="game.resolveVictory('release')">放走</button>
+        <button class="btn btn-reply" onclick="game.resolveVictory('loot')">搜刮</button>
+        <button class="btn btn-reply" onclick="game.resolveVictory('interrogate')">逼问</button>
+      </div>`;
+    } else {
+      html = `<div class="btn-row three">
+        ${!npc.isChild ? '<button class="btn btn-reply" style="color:#9b59b6" onclick="game.resolveVictory(\'puppet\')">炼成傀儡</button>' : ''}
+        <button class="btn btn-reply" style="color:var(--red)" onclick="game.resolveVictory('kill')">杀掉</button>
+        <button class="btn btn-reply" onclick="game.resolveVictory('release')">放走</button>
+      </div>
+      <div class="btn-row" style="grid-template-columns:1fr 1fr">
+        <button class="btn btn-reply" onclick="game.resolveVictory('loot')">搜刮</button>
+        <button class="btn btn-reply" onclick="game.resolveVictory('interrogate')">逼问</button>
+      </div>`;
+    }
+    container.innerHTML = html;
     this.inEncounter = true;
+  }
+
+  showRejectedChoices(npc) {
+    this.hideAllActions();
+    const container = document.getElementById('dialogueActions');
+    container.classList.remove('hidden');
+    container.innerHTML = `
+      <div style="color:var(--text-dim);font-size:13px;margin-bottom:6px">${npc.name}拒绝了你，如何处置？</div>
+      <div class="btn-row three">
+        <button class="btn btn-reply" style="color:#e74c3c" onclick="game.resolveVictory('furnace')">炼成炉鼎</button>
+        <button class="btn btn-reply" style="color:var(--red)" onclick="game.resolveVictory('kill')">杀掉</button>
+        <button class="btn btn-reply" onclick="game.resolveVictory('release')">放走</button>
+      </div>
+      <div class="btn-row" style="grid-template-columns:1fr 1fr">
+        <button class="btn btn-reply" onclick="game.resolveVictory('loot')">搜刮</button>
+        <button class="btn btn-reply" onclick="game.resolveVictory('interrogate')">逼问</button>
+      </div>`;
+    this.inEncounter = true;
+  }
+
+  maybeSendDistress(npc) {
+    if (Math.random() < 0.7) {
+      this.log(`${npc.name}在临死前发出了求救信号！`, 'danger');
+      this.spawnAvenger(npc);
+      return true;
+    }
+    this.log(`${npc.name}来不及发出求救……`, '');
+    return false;
   }
 
   resolveVictory(choice) {
     const v = this.pendingVictim;
     if (!v) return;
     const npc = v.npc;
-    this.pendingVictim = null;
 
     if (choice === 'release') {
+      this.pendingVictim = null;
       npc.changeRelation(this.player.id, 15);
       this.log(`你放${npc.name}离去。对方抱拳：「多谢不杀之恩。」好感+15`, '');
-    } else if (choice === 'loot') {
+      this.finishCombatNPC(npc, v.isOld);
+      return;
+    }
+
+    if (choice === 'kill') {
+      this.pendingVictim = null;
+      const loot = randInt(10, 40) * (npc.realmIndex + 1);
+      this.player.inventory.lingshi += loot;
+      this.trackStat('lingshiEarned', loot);
+      npc.isAlive = false;
+      this.player.infamy = (this.player.infamy || 0) + 15;
+      this.trackStat('kills');
+      showScenePopup('danger', '击 杀', 1500);
+      this.log(`你一掌拍出，${npc.name}当场殒命。获得 ${loot} 灵石。`, 'danger');
+      this.maybeSendDistress(npc);
+      npc.changeRelation(this.player.id, -100);
+      this.finishCombatNPC(npc, v.isOld);
+      return;
+    }
+
+    if (choice === 'furnace') {
+      this.pendingVictim = null;
+      const label = this.player.gender === '男' ? '采阴补阳' : '采阳补阴';
+      const expGain = Math.floor(REALMS[npc.realmIndex].expPerStage * (0.5 + Math.random() * 0.5));
+      const lifeGain = randInt(5, 15) * (npc.realmIndex + 1);
+      const curRealm = REALMS[this.player.realmIndex];
+      this.player.exp = Math.min(this.player.exp + expGain, curRealm.expPerStage);
+      this.player.lifeCurrent += lifeGain;
+      npc.isAlive = false;
+      this.player.infamy = (this.player.infamy || 0) + 20;
+      this.trackStat('kills');
+      showScenePopup('danger', '炼 化 炉 鼎', 2000);
+      this.log(`你将${npc.name}炼成炉鼎，${label}，吸干其全部修为！`, 'danger');
+      this.log(`修为+${expGain}，寿元+${lifeGain}。`, 'success');
+      this.maybeSendDistress(npc);
+      npc.changeRelation(this.player.id, -100);
+      this.finishCombatNPC(npc, v.isOld);
+      return;
+    }
+
+    if (choice === 'concubine') {
+      const rel = npc.getRelation(this.player.id);
+      const pPower = getTotalPower(this.player.realmIndex, this.player.stageIndex);
+      const nPower = getTotalPower(npc.realmIndex, npc.stageIndex);
+      let acceptChance = 0.2 + (pPower - nPower) * 0.05 + Math.max(0, rel) * 0.005;
+      acceptChance = Math.max(0.1, Math.min(0.8, acceptChance));
+      const label = this.player.gender === '男' ? '侍妾' : '男宠';
+
+      if (Math.random() < acceptChance) {
+        this.pendingVictim = null;
+        npc.role = 'concubine';
+        npc.isPermanent = true;
+        npc.changeRelation(this.player.id, 50 - rel);
+        if (!this.player.concubines) this.player.concubines = [];
+        this.player.concubines.push(npc.id);
+        if (!this.memoryStore.getById(npc.id)) this.memoryStore.add(npc);
+        this.placeNpcAtPlayer(npc);
+        showScenePopup('dual', '收 为 ' + label, 2000);
+        this.log(`${npc.name}低下头：「妾身……愿随主人左右。」`, 'pink');
+        this.log(`【${npc.name}】成为你的${label}，将始终跟随你。`, 'system');
+        this.finishCombatNPC(npc, v.isOld);
+      } else {
+        this.log(`${npc.name}怒目而视：「呸！宁死不从！」`, 'danger');
+        this.showRejectedChoices(npc);
+      }
+      return;
+    }
+
+    if (choice === 'puppet') {
+      this.pendingVictim = null;
+      npc.role = 'puppet';
+      npc.isPermanent = true;
+      if (!this.player.puppets) this.player.puppets = [];
+      this.player.puppets.push(npc.id);
+      if (!this.memoryStore.getById(npc.id)) this.memoryStore.add(npc);
+      this.placeNpcAtPlayer(npc);
+      this.player.infamy = (this.player.infamy || 0) + 15;
+      showScenePopup('danger', '炼 成 傀 儡', 2000);
+      this.log(`你施展秘法，将${npc.name}炼成傀儡！其意志被彻底抹除，成为你的忠实保镖。`, 'danger');
+      this.log(`【${npc.name}】成为你的傀儡，将始终跟随你。`, 'system');
+      this.maybeSendDistress(npc);
+      npc.changeRelation(this.player.id, -100);
+      this.finishCombatNPC(npc, v.isOld);
+      return;
+    }
+
+    if (choice === 'loot') {
+      this.pendingVictim = null;
       const loot = randInt(30, 100) * (npc.realmIndex + 1);
       this.player.inventory.lingshi += loot;
       this.trackStat('lingshiEarned', loot);
@@ -2497,8 +2944,12 @@ class Game {
       }
       npc.changeRelation(this.player.id, -15);
       this.player.infamy = (this.player.infamy || 0) + 10;
-      this.spawnAvenger(npc);
-    } else if (choice === 'interrogate') {
+      this.finishCombatNPC(npc, v.isOld);
+      return;
+    }
+
+    if (choice === 'interrogate') {
+      this.pendingVictim = null;
       const intelRoll = Math.random();
       if (intelRoll < 0.4) {
         const tx = randInt(0, MAP_SIZE - 1), ty = randInt(0, MAP_SIZE - 1);
@@ -2532,9 +2983,9 @@ class Game {
         }
       }
       npc.changeRelation(this.player.id, -10);
+      this.finishCombatNPC(npc, v.isOld);
+      return;
     }
-
-    this.finishCombatNPC(npc, v.isOld);
   }
 
   finishCombatNPC(npc, isOld) {
@@ -2637,6 +3088,8 @@ class Game {
 
     if (action === 'dual') {
       showScenePopup('dual', '双 修', 2000);
+      this.worldTick(1);
+      if (this.isDead) return;
       let delta = randInt(10, 20);
       const lifeGain = randInt(3, 8);
       this.player.lifeCurrent += lifeGain;
@@ -2661,7 +3114,7 @@ class Game {
 
       const nP = getTotalPower(npc.realmIndex, npc.stageIndex);
       const pP = getTotalPower(this.player.realmIndex, this.player.stageIndex);
-      const childChance = 0.4 / Math.max(1, (pP + nP) * 0.3);
+      const childChance = Math.max(0.08, 0.25 / Math.max(1, (pP + nP) * 0.05));
 
       if (Math.random() < childChance && !npc.pregnant) {
         this.log(`【天赐良缘】双修结出硕果！${npc.name}有孕在身！`, 'pink');
@@ -2917,7 +3370,7 @@ class Game {
     this.log(`你盘膝而坐，尝试突破至<span class="realm-text">${targetName}</span>……（成功率 ${Math.round(chance * 100)}%）`, 'system');
 
     if (Math.random() < chance) {
-      showScenePopup('success', '突 破 成 功', 2000);
+      showScenePopup('breakthrough', '突 破 成 功', 2000);
       this.player.exp = 0;
       this.player.stageIndex++;
       if (this.player.stageIndex >= curRealm.stages.length) {
@@ -3179,12 +3632,13 @@ class Game {
     showScenePopup('combat', '战 斗', 1200);
     const activeSkill = this.player.activeSkill ? getSkillById(this.player.activeSkill) : null;
     const skillPower = activeSkill ? activeSkill.power : 0;
+    const followerAtk = this.getFollowerAtk();
     const pAtk = getTotalPower(this.player.realmIndex, this.player.stageIndex) * 8 + this.getPlayerTreasurePower() + skillPower;
     const eAtk = getTotalPower(enemyRI, enemySI) * 8 + (enemyTreasure || 0);
     const eHpMax = REALMS[enemyRI].hpMax;
     this.combatState = {
       enemyName, enemyRI, enemySI,
-      pAtk, eAtk,
+      pAtk, eAtk, followerAtk,
       eHp: eHpMax, eHpMax,
       pHpStart: this.player.hp,
       onWin, onLose,
@@ -3219,13 +3673,14 @@ class Game {
           <div class="combat-hp-wrap"><div class="combat-hp-fill enemy-bar" style="width:${eHpPct}%"></div><div class="combat-hp-text">${cs.eHp}/${cs.eHpMax}</div></div>
           <span style="font-size:10px;color:var(--text-dim)">攻${cs.eAtk}</span>
         </div>
-        <div class="combat-info">第 ${cs.round} 回合${curSkill ? ` · 功法：${curSkill.name}(+${curSkill.power})` : ''}</div>
+        <div class="combat-info">第 ${cs.round} 回合${curSkill ? ` · 功法：${curSkill.name}(+${curSkill.power})` : ''}${cs.followerAtk ? ` · <span style="color:#9b59b6">随从待命</span>` : ''}</div>
         <div class="combat-log">${logHtml}</div>
       </div>
-      <div class="btn-row three">
+      <div class="btn-row" style="grid-template-columns:repeat(${cs.followerAtk ? 4 : 3},1fr)">
         <button class="btn" onclick="game.combatAction('strike')">全力一击</button>
         <button class="btn" onclick="game.combatAction('defend')">防御反击</button>
         <button class="btn" style="color:var(--blue);border-color:var(--blue)" onclick="game.combatAction('skill')">${curSkill ? curSkill.name : '基础攻击'}</button>
+        ${cs.followerAtk ? `<button class="btn" style="color:#9b59b6;border-color:#9b59b6" onclick="game.combatAction('follower')">随从出击(${cs.followerAtk})</button>` : ''}
       </div>
       <div class="btn-row">
         <button class="btn" onclick="game.combatAction('flee')" style="grid-column:1/-1">尝试逃跑</button>
@@ -3284,6 +3739,11 @@ class Game {
           eDmg = Math.floor(cs.eAtk * (0.6 + Math.random() * 0.5));
         }
       }
+    } else if (action === 'follower') {
+      const fNames = this.getFollowerNames();
+      pDmg = Math.floor(cs.followerAtk * (0.8 + Math.random() * 0.6));
+      eDmg = Math.floor(cs.eAtk * (0.3 + Math.random() * 0.3));
+      pText = `<span style="color:#9b59b6">你命令${fNames.join('、')}出击，造成 ${pDmg} 伤害！</span>`;
     }
 
     cs.eHp -= pDmg;
@@ -3525,16 +3985,57 @@ class Game {
       if (npc.lifeCurrent < npc.lifeMax * 0.2 && Math.random() < 0.3) {
         this.log(`<span class="npc-name">${npc.name}</span>传来消息：「我寿元将尽，恐时日无多……望你珍重。」`, 'danger');
       }
-      if (Math.random() < 0.08) {
-        this.placeNpcOnMap(npc);
-        npc.tempTurns = 3;
-        showScenePopup('danger', npc.name + ' 求救', 2000);
-        this.log(`<span class="npc-name">${npc.name}</span>发来求救：「我遭人围攻，速来援救！」`, 'danger');
-      }
     }
 
     this.memoryStore.save();
     this.mapSystem.save();
+  }
+
+  doRescue(npc) {
+    if (!npc || !npc.rescueTask) return;
+    const rt = npc.rescueTask;
+    this.log(`你赶到${npc.name}身边，准备${rt.desc}！`, 'system');
+
+    if (rt.type === 'fight') {
+      const enemyRI = Math.min(npc.realmIndex + 1, REALMS.length - 1);
+      showScenePopup('combat', '援 救 ' + npc.name, 1500);
+      this.startCombat('歹人', enemyRI, randInt(0, 2), randInt(5, 20),
+        () => {
+          npc.rescueTask = null;
+          npc.changeRelation(this.player.id, 25);
+          this.log(`你成功击退歹人！${npc.name}感激不尽：「多谢救命之恩！」好感+25`, 'success');
+          this.updateHeader(); this.save(); this.showMainActions();
+        },
+        () => {
+          npc.rescueTask = null;
+          this.log(`你没能击退歹人，但${npc.name}趁机逃走了。`, '');
+          npc.changeRelation(this.player.id, 10);
+          if (this.player.hp > 0) { this.updateHeader(); this.save(); this.showMainActions(); }
+        }
+      );
+    } else if (rt.type === 'pill') {
+      const needed = getPillForBreakthrough(npc.realmIndex, npc.stageIndex);
+      if (needed && (this.player.inventory.pills[needed.id] || 0) > 0) {
+        this.player.inventory.pills[needed.id]--;
+        npc.rescueTask = null;
+        npc.changeRelation(this.player.id, 30);
+        this.log(`你将${needed.name}交给${npc.name}。${npc.name}：「大恩不言谢！」好感+30`, 'success');
+      } else {
+        this.log(`${npc.name}需要${needed ? needed.name : '突破丹药'}，但你没有。`, 'system');
+      }
+      this.updateHeader(); this.save();
+    } else if (rt.type === 'lingshi') {
+      const cost = randInt(30, 100) * Math.max(1, npc.realmIndex);
+      if (this.player.inventory.lingshi >= cost) {
+        this.player.inventory.lingshi -= cost;
+        npc.rescueTask = null;
+        npc.changeRelation(this.player.id, 20);
+        this.log(`你赠送${cost}灵石给${npc.name}。${npc.name}：「雪中送炭，此恩铭记！」好感+20`, 'success');
+      } else {
+        this.log(`${npc.name}需要约${cost}灵石，但你灵石不足。`, 'system');
+      }
+      this.updateHeader(); this.save();
+    }
   }
 
   doTeachSkill(npcId, skillId) {
@@ -3708,6 +4209,8 @@ function showMemory() {
       const isMinor = npc.age !== null && npc.age < 20;
       let statusTag = '';
       if (!npc.isAlive) statusTag = '（已陨落）';
+      else if (npc.role === 'concubine') statusTag = game.player.gender === '男' ? '【侍妾·跟随中】' : '【男宠·跟随中】';
+      else if (npc.role === 'puppet') statusTag = '【傀儡·跟随中】';
       else if (isMinor) statusTag = `（幼年·${Math.floor(npc.age)}岁·跟随母亲）`;
       else if (npc.pregnant) statusTag = `（有孕在身·还有${npc.pregnant.turnsLeft}回合）`;
       else if (game.player.master === npc.id) statusTag = '【师父】';
@@ -3842,6 +4345,8 @@ function npcAction(npcId, action) {
     closeMemory();
   } else if (action === 'dual') {
     showScenePopup('dual', '双 修', 2000);
+    game.worldTick(1);
+    if (game.isDead) { closeMemory(); return; }
     const baseExp = randInt(40, 100);
     const expGain = Math.floor(baseExp * (1 + p.realmIndex * 0.3));
     const hpGain = Math.floor(p.hpMax * 0.2);
@@ -3946,120 +4451,255 @@ function switchMemTab(tab) {
   document.getElementById('memoryGraph').classList.toggle('hidden', tab !== 'graph');
   document.getElementById('memTabList').style.borderColor = tab === 'list' ? 'var(--gold)' : '';
   document.getElementById('memTabGraph').style.borderColor = tab === 'graph' ? 'var(--gold)' : '';
-  if (tab === 'graph') drawRelationGraph();
+  const modal = document.getElementById('memoryModal').querySelector('.modal');
+  if (tab === 'graph') {
+    modal.classList.add('graph-mode');
+    requestAnimationFrame(() => { drawRelationGraph(); initGraphInteraction(); });
+  } else {
+    modal.classList.remove('graph-mode');
+  }
+}
+
+const _graphState = { panX: 0, panY: 0, scale: 1, dragging: false, lastX: 0, lastY: 0, pinchDist: 0 };
+
+function initGraphInteraction() {
+  const vp = document.getElementById('memoryGraph');
+  const canvas = document.getElementById('relationCanvas');
+  const gs = _graphState;
+  gs.scale = 0.6;
+  gs.panX = (vp.clientWidth - canvas.width * gs.scale) / 2;
+  gs.panY = (vp.clientHeight - canvas.height * gs.scale) / 2;
+  applyGraphTransform();
+
+  vp.onmousedown = (e) => { gs.dragging = true; gs.lastX = e.clientX; gs.lastY = e.clientY; };
+  vp.onmousemove = (e) => { if (!gs.dragging) return; gs.panX += e.clientX - gs.lastX; gs.panY += e.clientY - gs.lastY; gs.lastX = e.clientX; gs.lastY = e.clientY; applyGraphTransform(); };
+  vp.onmouseup = vp.onmouseleave = () => { gs.dragging = false; };
+
+  vp.onwheel = (e) => { e.preventDefault(); const d = e.deltaY > 0 ? 0.9 : 1.1; gs.scale = Math.max(0.2, Math.min(3, gs.scale * d)); applyGraphTransform(); };
+
+  vp.ontouchstart = (e) => {
+    if (e.touches.length === 1) { gs.dragging = true; gs.lastX = e.touches[0].clientX; gs.lastY = e.touches[0].clientY; }
+    else if (e.touches.length === 2) { gs.dragging = false; gs.pinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); }
+  };
+  vp.ontouchmove = (e) => {
+    e.preventDefault();
+    if (e.touches.length === 1 && gs.dragging) { gs.panX += e.touches[0].clientX - gs.lastX; gs.panY += e.touches[0].clientY - gs.lastY; gs.lastX = e.touches[0].clientX; gs.lastY = e.touches[0].clientY; applyGraphTransform(); }
+    else if (e.touches.length === 2) {
+      const nd = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+      if (gs.pinchDist > 0) { gs.scale = Math.max(0.2, Math.min(3, gs.scale * (nd / gs.pinchDist))); applyGraphTransform(); }
+      gs.pinchDist = nd;
+    }
+  };
+  vp.ontouchend = () => { gs.dragging = false; gs.pinchDist = 0; };
+}
+
+function applyGraphTransform() {
+  const canvas = document.getElementById('relationCanvas');
+  const gs = _graphState;
+  canvas.style.transform = `translate(${gs.panX}px,${gs.panY}px) scale(${gs.scale})`;
 }
 
 function drawRelationGraph() {
   const canvas = document.getElementById('relationCanvas');
   const ctx = canvas.getContext('2d');
-  const W = canvas.width, H = canvas.height;
+  const all = game.memoryStore.getAll().filter(n => n.isAlive || n.isPermanent);
+
+  const p = game.player;
+  const bonds = p.bonds || [], concubines = p.concubines || [], puppets = p.puppets || [];
+  const usedIds = new Set();
+
+  const masterNpc = p.master ? all.find(n => n.id === p.master) : null;
+  const spouses = all.filter(n => n.spouse === '__player__');
+  const concNpcs = all.filter(n => concubines.includes(n.id) && !spouses.find(s => s.id === n.id));
+  const discipleNpcs = all.filter(n => (p.disciples || []).includes(n.id));
+  const puppetNpcs = all.filter(n => puppets.includes(n.id));
+  const bondNpcs = all.filter(n => bonds.includes(n.id) && !spouses.find(s => s.id === n.id)
+    && !concubines.includes(n.id) && n.id !== p.master && !(p.disciples||[]).includes(n.id));
+
+  if (masterNpc) usedIds.add(masterNpc.id);
+  for (const s of spouses) usedIds.add(s.id);
+  for (const c of concNpcs) usedIds.add(c.id);
+  for (const d of discipleNpcs) usedIds.add(d.id);
+  for (const pp of puppetNpcs) usedIds.add(pp.id);
+  for (const b of bondNpcs) usedIds.add(b.id);
+
+  const childrenOf = {};
+  for (const n of all) {
+    if (n.isChild || n.motherNpcId) {
+      const parentId = n.motherNpcId || '__player__';
+      if (!childrenOf[parentId]) childrenOf[parentId] = [];
+      childrenOf[parentId].push(n);
+      usedIds.add(n.id);
+    }
+  }
+
+  const others = all.filter(n => !usedIds.has(n.id));
+  const friends = others.filter(n => n.getRelation(p.id) >= 30);
+  const enemies = others.filter(n => n.getRelation(p.id) <= -30);
+  const neutrals = others.filter(n => { const r = n.getRelation(p.id); return r > -30 && r < 30; });
+
+  const NR = 20, COLS = 4, CELL = 80;
+  const nodes = [], edges = [], groupLabels = [];
+
+  function mkNode(id, name, x, y, color, label, alive) {
+    const n = { id, name, x, y, color: alive === false ? '#555' : color, r: id === 'player' ? 26 : NR, label: label || '', dead: alive === false };
+    nodes.push(n); return n;
+  }
+  function mkEdge(a, b, color, label) { edges.push({ a, b, color, label: label || '' }); }
+
+  const cx = 600, cy = 500;
+  const pn = mkNode('player', p.name, cx, cy, '#d4a853', p.sect ? (getSectById(p.sect)||{}).name||'' : '', true);
+
+  // === UPPER: master ===
+  if (masterNpc) {
+    const mn = mkNode(masterNpc.id, masterNpc.name, cx, cy - 130, '#d4a853', '师父', masterNpc.isAlive);
+    mkEdge(pn, mn, '#d4a853', '师父');
+  }
+
+  // === RIGHT: spouses + concubines ===
+  const familyList = [...spouses.map(s => ({ npc: s, type: 'spouse' })), ...concNpcs.map(c => ({ npc: c, type: 'conc' }))];
+  for (let i = 0; i < familyList.length; i++) {
+    const f = familyList[i];
+    const fx = cx + 140 + i * 110;
+    const fy = cy - 20 + i * 40;
+    const label = f.type === 'spouse' ? '道侣' : (p.gender === '男' ? '侍妾' : '男宠');
+    const color = f.type === 'spouse' ? '#e91e63' : '#e67e22';
+    const fn = mkNode(f.npc.id, f.npc.name, fx, fy, color, label, f.npc.isAlive);
+    mkEdge(pn, fn, color, label);
+    const kids = childrenOf[f.npc.id] || [];
+    for (let ki = 0; ki < kids.length; ki++) {
+      const k = kids[ki];
+      const kn = mkNode(k.id, k.name, fx + (ki - (kids.length - 1) / 2) * 70, fy + 80, '#e91e63', k.gender === '男' ? '子' : '女', k.isAlive);
+      mkEdge(fn, kn, '#e91e63');
+    }
+  }
+  const orphans = (childrenOf['__player__'] || []).filter(k => !nodes.find(n => n.id === k.id));
+  for (let i = 0; i < orphans.length; i++) {
+    const k = orphans[i];
+    const kn = mkNode(k.id, k.name, cx + 140 + familyList.length * 110 + i * 70, cy + 60, '#e91e63', k.gender === '男' ? '子' : '女', k.isAlive);
+    mkEdge(pn, kn, '#e91e63');
+  }
+
+  // === LEFT: bonds ===
+  for (let i = 0; i < bondNpcs.length; i++) {
+    const b = bondNpcs[i];
+    const bn = mkNode(b.id, b.name, cx - 140 - i * 110, cy - 20 + i * 40, '#27ae60', '结拜', b.isAlive);
+    mkEdge(pn, bn, '#27ae60', '结拜');
+  }
+
+  // === LOWER-LEFT: disciples ===
+  for (let i = 0; i < discipleNpcs.length; i++) {
+    const d = discipleNpcs[i];
+    const dn = mkNode(d.id, d.name, cx - 100 - i * 90, cy + 130, '#d4a853', '徒弟', d.isAlive);
+    mkEdge(pn, dn, '#d4a853', '徒弟');
+  }
+
+  // === LOWER-RIGHT: puppets ===
+  for (let i = 0; i < puppetNpcs.length; i++) {
+    const pp = puppetNpcs[i];
+    const ppn = mkNode(pp.id, pp.name, cx + 100 + i * 90, cy + 130, '#9b59b6', '傀儡', pp.isAlive);
+    mkEdge(pn, ppn, '#9b59b6', '傀儡');
+  }
+
+  // === OUTER: grid clusters for friends / enemies / neutrals ===
+  function placeCluster(npcs, startX, startY, color, title, relFn) {
+    if (!npcs.length) return;
+    groupLabels.push({ text: title, x: startX, y: startY - 20, color: color });
+    for (let i = 0; i < npcs.length; i++) {
+      const col = i % COLS, row = Math.floor(i / COLS);
+      const nx = startX + col * CELL;
+      const ny = startY + row * CELL;
+      const rel = relFn ? relFn(npcs[i]) : 0;
+      const relStr = rel !== 0 ? `${rel >= 0 ? '+' : ''}${rel}` : '';
+      const nn = mkNode(npcs[i].id, npcs[i].name, nx, ny, color, relStr, npcs[i].isAlive);
+      mkEdge(pn, nn, color + '44');
+    }
+  }
+
+  const innerBottom = cy + 130 + (discipleNpcs.length || puppetNpcs.length ? 80 : 0);
+  const innerRight = cx + 140 + Math.max(familyList.length, 1) * 110 + 60;
+  const innerLeft = cx - 140 - Math.max(bondNpcs.length, 0) * 110 - 60;
+  const relFn = (n) => n.getRelation(p.id);
+
+  placeCluster(friends, innerLeft - (friends.length > COLS ? COLS : friends.length) * CELL / 2, cy - 250, '#27ae60', '— 好友 —', relFn);
+  placeCluster(enemies, innerRight, cy - 250, '#c0392b', '— 仇敌 —', relFn);
+  placeCluster(neutrals, cx - (Math.min(neutrals.length, COLS)) * CELL / 2, innerBottom + 40, '#777', '— 泛泛之交 —', relFn);
+
+  // === Compute canvas size ===
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  for (const n of nodes) {
+    minX = Math.min(minX, n.x - 60); maxX = Math.max(maxX, n.x + 60);
+    minY = Math.min(minY, n.y - 60); maxY = Math.max(maxY, n.y + 60);
+  }
+  for (const gl of groupLabels) { minX = Math.min(minX, gl.x - 20); minY = Math.min(minY, gl.y - 10); }
+  const pad = 40;
+  const W = Math.max(800, maxX - minX + pad * 2);
+  const H = Math.max(600, maxY - minY + pad * 2);
+  const offX = -minX + pad, offY = -minY + pad;
+  for (const n of nodes) { n.x += offX; n.y += offY; }
+  for (const gl of groupLabels) { gl.x += offX; gl.y += offY; }
+  canvas.width = W; canvas.height = H;
   ctx.clearRect(0, 0, W, H);
 
-  const all = game.memoryStore.getAll().filter(n => n.isAlive || n.isPermanent);
-  if (!all.length) {
-    ctx.fillStyle = '#9a8e7a';
-    ctx.font = '14px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('尚无关系记录', W / 2, H / 2);
-    return;
-  }
-
-  const nodes = [];
-  const cx = W / 2, cy = H / 2;
-  nodes.push({ id: 'player', name: game.player.name, x: cx, y: cy, color: '#d4a853', r: 18 });
-
-  const count = all.length;
-  const baseR = Math.min(W, H) * 0.35;
-  for (let i = 0; i < count; i++) {
-    const angle = (Math.PI * 2 * i) / count - Math.PI / 2;
-    const r = baseR + randInt(-20, 20);
-    nodes.push({
-      id: all[i].id, name: all[i].name, sect: all[i].sect,
-      x: cx + Math.cos(angle) * r,
-      y: cy + Math.sin(angle) * r,
-      color: all[i].isAlive ? '#e8dcc8' : '#555',
-      r: 12, npc: all[i]
-    });
-  }
-
-  const lines = [];
-  for (let i = 1; i < nodes.length; i++) {
-    const npc = nodes[i].npc;
-    const rel = npc.getRelation(game.player.id);
-    const isOpp = npc.gender !== game.player.gender;
-    const cat = getRelationCategory(rel, npc.isChild, npc.id);
-    let color, width;
-    if (cat === 'soulmate') { color = '#e91e63'; width = 2.5; }
-    else if (cat === 'blood') { color = '#e91e63'; width = 2; }
-    else if (cat === 'friend') { color = '#27ae60'; width = 1.5; }
-    else if (cat === 'enemy') { color = '#c0392b'; width = 1.5; }
-    else { color = '#444'; width = 0.5; }
-    lines.push({ from: nodes[0], to: nodes[i], color, width, label: `${rel}` });
-  }
-
-  for (let i = 1; i < nodes.length; i++) {
-    for (let j = i + 1; j < nodes.length; j++) {
-      const a = nodes[i].npc, b = nodes[j].npc;
-      if (a.spouse === b.id) {
-        lines.push({ from: nodes[i], to: nodes[j], color: '#e91e63', width: 2, label: '道侣' });
-      } else if (a.motherNpcId === b.id || b.motherNpcId === a.id) {
-        lines.push({ from: nodes[i], to: nodes[j], color: '#e91e63', width: 1.5, label: '亲子' });
-      } else if (a.sect === b.sect && a.sect !== '散修') {
-        lines.push({ from: nodes[i], to: nodes[j], color: '#3a6a5a', width: 0.8, label: '' });
-      } else {
-        const sa = getSectByName(a.sect), sb = getSectByName(b.sect);
-        if (sa && sb && sa.rivals.includes(sb.id)) {
-          lines.push({ from: nodes[i], to: nodes[j], color: '#5a2a2a', width: 0.8, label: '', dash: true });
-        }
-      }
-    }
-  }
-
-  for (const l of lines) {
+  // === Draw edges ===
+  for (const e of edges) {
     ctx.beginPath();
-    ctx.strokeStyle = l.color;
-    ctx.lineWidth = l.width;
-    if (l.dash) ctx.setLineDash([4, 4]); else ctx.setLineDash([]);
-    ctx.moveTo(l.from.x, l.from.y);
-    ctx.lineTo(l.to.x, l.to.y);
+    ctx.strokeStyle = e.color; ctx.lineWidth = 1.2;
+    ctx.setLineDash([]);
+    const dx = e.b.x - e.a.x, dy = e.b.y - e.a.y;
+    const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+    ctx.moveTo(e.a.x + dx / dist * e.a.r, e.a.y + dy / dist * e.a.r);
+    ctx.lineTo(e.b.x - dx / dist * e.b.r, e.b.y - dy / dist * e.b.r);
     ctx.stroke();
-    if (l.label) {
-      const mx = (l.from.x + l.to.x) / 2, my = (l.from.y + l.to.y) / 2;
-      ctx.fillStyle = l.color;
-      ctx.font = '9px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText(l.label, mx, my - 3);
+    if (e.label) {
+      const mx = (e.a.x + e.b.x) / 2, my = (e.a.y + e.b.y) / 2;
+      ctx.fillStyle = e.color; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(e.label, mx, my - 10);
     }
   }
-  ctx.setLineDash([]);
 
+  // === Draw group labels ===
+  for (const gl of groupLabels) {
+    ctx.fillStyle = gl.color; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(gl.text, gl.x + COLS * CELL / 2 - CELL / 2, gl.y);
+  }
+
+  // === Draw nodes ===
   for (const n of nodes) {
     ctx.beginPath();
     ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
-    ctx.fillStyle = n.id === 'player' ? '#2a2010' : '#1a1a2e';
+    ctx.fillStyle = n.id === 'player' ? '#1a1510' : '#12121e';
     ctx.fill();
-    ctx.strokeStyle = n.color;
-    ctx.lineWidth = n.id === 'player' ? 2.5 : 1.5;
+    ctx.strokeStyle = n.color; ctx.lineWidth = n.id === 'player' ? 3 : 2;
     ctx.stroke();
 
-    ctx.fillStyle = n.color;
-    ctx.font = `${n.id === 'player' ? 11 : 10}px sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    const displayName = n.name.length > 3 ? n.name.slice(0, 3) : n.name;
-    ctx.fillText(displayName, n.x, n.y);
+    if (n.id === 'player') {
+      ctx.beginPath(); ctx.arc(n.x, n.y, n.r + 5, 0, Math.PI * 2);
+      ctx.strokeStyle = '#d4a85344'; ctx.lineWidth = 1; ctx.stroke();
+    }
 
-    if (n.npc) {
-      ctx.fillStyle = '#9a8e7a';
-      ctx.font = '8px sans-serif';
-      ctx.fillText(n.npc.sect === '散修' ? '散修' : n.npc.sect.slice(0, 2), n.x, n.y + n.r + 8);
+    ctx.fillStyle = n.dead ? '#666' : n.color;
+    ctx.font = `bold ${n.id === 'player' ? 14 : 11}px sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(n.name.length > 3 ? n.name.slice(0, 3) : n.name, n.x, n.y);
+
+    if (n.label) {
+      ctx.fillStyle = n.dead ? '#555' : '#9a8e7a';
+      ctx.font = '10px sans-serif';
+      ctx.fillText(n.label, n.x, n.y + n.r + 12);
+    }
+
+    if (n.dead) {
+      ctx.strokeStyle = '#c0392b55'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(n.x - n.r, n.y); ctx.lineTo(n.x + n.r, n.y); ctx.stroke();
     }
   }
 
-  ctx.fillStyle = '#9a8e7a';
-  ctx.font = '9px sans-serif';
-  ctx.textAlign = 'left';
-  ctx.fillText('绿:友 红:仇 粉:道侣/亲子 深绿:同门 虚线:敌对', 5, H - 5);
+  const gs = _graphState;
+  const vp = document.getElementById('memoryGraph');
+  gs.panX = (vp.clientWidth - W * gs.scale) / 2;
+  gs.panY = (vp.clientHeight - H * gs.scale) / 2;
+  applyGraphTransform();
 }
 
 function showNpcHere() {
@@ -4096,41 +4736,45 @@ function talkToNpc(npc) {
 }
 
 // ===== 坊市 =====
-function showMarket() {
+let _marketTab = 'pill';
+
+function fmtPrice(v) { return v >= 10000 ? (v/10000).toFixed(v%10000?1:0)+'万' : String(v); }
+
+function showMarket(tab) {
+  if (tab) _marketTab = tab;
   const body = document.getElementById('marketBody');
   body.innerHTML = '';
   const p = game.player;
 
-  const title1 = document.createElement('h4');
-  title1.style.cssText = 'color:var(--gold);font-size:14px;margin-bottom:8px;font-weight:normal';
-  title1.textContent = `你的灵石：${p.inventory.lingshi}`;
-  body.appendChild(title1);
+  document.getElementById('marketLingshi').textContent = `灵石 ${p.inventory.lingshi}`;
+  document.querySelectorAll('.market-tab').forEach(b => {
+    b.style.borderColor = b.dataset.tab === _marketTab ? 'var(--gold)' : '';
+  });
 
-  const secBuy = document.createElement('div');
-  secBuy.innerHTML = '<h4 style="color:var(--purple);font-size:13px;margin-bottom:6px;font-weight:normal">— 购买丹药 —</h4>';
-  body.appendChild(secBuy);
+  if (_marketTab === 'pill') renderMarketPill(body, p);
+  else if (_marketTab === 'skill') renderMarketSkill(body, p);
+  else if (_marketTab === 'sell') renderMarketSell(body, p);
+  else if (_marketTab === 'bounty') renderMarketBounty(body, p);
 
+  document.getElementById('marketModal').classList.add('show');
+}
+
+function renderMarketPill(body, p) {
   const shopPills = PILLS.filter(pill => pill.forRealm <= p.realmIndex + 1);
   for (const pill of shopPills) {
     const div = document.createElement('div');
     div.className = 'shop-item';
     const owned = p.inventory.pills[pill.id] || 0;
-    div.innerHTML = `
-      <div class="item-info">
-        <div class="item-name">${pill.name}${owned > 0 ? ` (已有${owned})` : ''}</div>
-        <div class="item-desc">${pill.desc}${pill.rarity >= 5 ? ' · 稀有' : ''}${pill.rarity >= 7 ? '!' : ''}</div>
-      </div>
-    `;
+    div.innerHTML = `<div class="item-info"><div class="item-name">${pill.name}${owned > 0 ? ` (已有${owned})` : ''}</div><div class="item-desc">${pill.desc}${pill.rarity >= 5 ? ' · 稀有' : ''}${pill.rarity >= 7 ? '!' : ''}</div></div>`;
     const btn = document.createElement('button');
     btn.className = 'btn btn-sm';
-    btn.textContent = `${pill.price >= 10000 ? (pill.price/10000).toFixed(pill.price%10000?1:0)+'万' : pill.price}石`;
+    btn.textContent = `${fmtPrice(pill.price)}石`;
     btn.disabled = p.inventory.lingshi < pill.price;
     btn.onclick = () => {
       p.inventory.lingshi -= pill.price;
       p.inventory.pills[pill.id] = (p.inventory.pills[pill.id] || 0) + 1;
       game.log(`购买了<span class="npc-name">${pill.name}</span>，花费 ${pill.price} 灵石。`, 'loot');
-      game.updateHeader(); game.save();
-      showMarket();
+      game.updateHeader(); game.save(); showMarket();
     };
     div.appendChild(btn);
     body.appendChild(div);
@@ -4145,12 +4789,7 @@ function showMarket() {
   const hxDiv = document.createElement('div');
   hxDiv.className = 'shop-item';
   const hxOwned = p.inventory.huixuedan || 0;
-  hxDiv.innerHTML = `
-    <div class="item-info">
-      <div class="item-name">${HUIXUE_PILL.name}${hxOwned > 0 ? ` (已有${hxOwned})` : ''}</div>
-      <div class="item-desc">${HUIXUE_PILL.desc}</div>
-    </div>
-  `;
+  hxDiv.innerHTML = `<div class="item-info"><div class="item-name">${HUIXUE_PILL.name}${hxOwned > 0 ? ` (已有${hxOwned})` : ''}</div><div class="item-desc">${HUIXUE_PILL.desc}</div></div>`;
   const hxBtn = document.createElement('button');
   hxBtn.className = 'btn btn-sm';
   hxBtn.textContent = `${HUIXUE_PILL.price}石`;
@@ -4159,8 +4798,7 @@ function showMarket() {
     p.inventory.lingshi -= HUIXUE_PILL.price;
     p.inventory.huixuedan = (p.inventory.huixuedan || 0) + 1;
     game.log(`购买了<span class="npc-name">${HUIXUE_PILL.name}</span>，花费 ${HUIXUE_PILL.price} 灵石。`, 'loot');
-    game.updateHeader(); game.save();
-    showMarket();
+    game.updateHeader(); game.save(); showMarket();
   };
   hxDiv.appendChild(hxBtn);
   body.appendChild(hxDiv);
@@ -4168,12 +4806,7 @@ function showMarket() {
   const xzDiv = document.createElement('div');
   xzDiv.className = 'shop-item';
   const xzOwned = p.inventory.xunzongfu || 0;
-  xzDiv.innerHTML = `
-    <div class="item-info">
-      <div class="item-name">${XUNZONG_FU.name}${xzOwned > 0 ? ` (已有${xzOwned})` : ''}</div>
-      <div class="item-desc">${XUNZONG_FU.desc}</div>
-    </div>
-  `;
+  xzDiv.innerHTML = `<div class="item-info"><div class="item-name">${XUNZONG_FU.name}${xzOwned > 0 ? ` (已有${xzOwned})` : ''}</div><div class="item-desc">${XUNZONG_FU.desc}</div></div>`;
   const xzBtn = document.createElement('button');
   xzBtn.className = 'btn btn-sm';
   xzBtn.textContent = `${XUNZONG_FU.price}石`;
@@ -4182,48 +4815,19 @@ function showMarket() {
     p.inventory.lingshi -= XUNZONG_FU.price;
     p.inventory.xunzongfu = (p.inventory.xunzongfu || 0) + 1;
     game.log(`购买了<span class="npc-name">${XUNZONG_FU.name}</span>，花费 ${XUNZONG_FU.price} 灵石。`, 'loot');
-    game.updateHeader(); game.save();
-    showMarket();
+    game.updateHeader(); game.save(); showMarket();
   };
   xzDiv.appendChild(xzBtn);
   body.appendChild(xzDiv);
+}
 
-  if (p.inventory.items.length > 0) {
-    const secSell = document.createElement('div');
-    secSell.innerHTML = '<h4 style="color:var(--purple);font-size:13px;margin:12px 0 6px;font-weight:normal">— 出售宝物 —</h4>';
-    body.appendChild(secSell);
-
-    for (let i = 0; i < p.inventory.items.length; i++) {
-      const item = p.inventory.items[i];
-      const div = document.createElement('div');
-      div.className = 'shop-item';
-      div.innerHTML = `
-        <div class="item-info">
-          <div class="item-name">${item.name}（战力+${item.power}）</div>
-        </div>
-      `;
-      const btn = document.createElement('button');
-      btn.className = 'btn btn-sm';
-      btn.textContent = `卖 ${item.value}石`;
-      btn.onclick = () => {
-        p.inventory.lingshi += item.value;
-        p.inventory.items.splice(i, 1);
-        game.log(`出售<span class="npc-name">${item.name}</span>，获得 ${item.value} 灵石。`, 'loot');
-        game.updateHeader(); game.save();
-        showMarket();
-      };
-      div.appendChild(btn);
-      body.appendChild(div);
-    }
-  }
-
-  const skillSection = document.createElement('div');
-  skillSection.innerHTML = '<h4 style="color:var(--blue);font-size:13px;margin:12px 0 6px;font-weight:normal">— 功法秘籍 —</h4>';
-  body.appendChild(skillSection);
+function renderMarketSkill(body, p) {
   const shopSkills = SKILLS.filter(s => s.price > 0 && s.minRealm <= p.realmIndex);
   const ownedSkills = p.skills || [];
+  let hasAny = false;
   for (const sk of shopSkills) {
     if (ownedSkills.includes(sk.id)) continue;
+    hasAny = true;
     const div = document.createElement('div');
     div.className = 'shop-item';
     div.style.borderLeftColor = 'var(--blue)';
@@ -4243,17 +4847,96 @@ function showMarket() {
     div.appendChild(btn);
     body.appendChild(div);
   }
-  if (!shopSkills.filter(s => !ownedSkills.includes(s.id)).length) {
+  if (!hasAny) {
     const hint = document.createElement('div');
     hint.style.cssText = 'color:var(--text-dim);font-size:11px;text-align:center;padding:6px 0';
     hint.textContent = '暂无可学功法，提升境界解锁更多';
     body.appendChild(hint);
   }
+}
 
-  const bountySection = document.createElement('div');
-  bountySection.innerHTML = '<h4 style="color:#e67e22;font-size:13px;margin:12px 0 6px;font-weight:normal">— 悬赏榜 —</h4>';
-  body.appendChild(bountySection);
+function renderMarketSell(body, p) {
+  let hasAny = false;
 
+  if (p.inventory.items.length > 0) {
+    const sec = document.createElement('div');
+    sec.innerHTML = '<h4 style="color:var(--purple);font-size:13px;margin-bottom:6px;font-weight:normal">— 宝物 —</h4>';
+    body.appendChild(sec);
+    hasAny = true;
+    for (let i = 0; i < p.inventory.items.length; i++) {
+      const item = p.inventory.items[i];
+      const div = document.createElement('div');
+      div.className = 'shop-item';
+      div.innerHTML = `<div class="item-info"><div class="item-name">${item.name}（战力+${item.power}）</div></div>`;
+      const btn = document.createElement('button');
+      btn.className = 'btn btn-sm';
+      btn.textContent = `卖 ${item.value}石`;
+      btn.onclick = () => {
+        p.inventory.lingshi += item.value;
+        p.inventory.items.splice(i, 1);
+        game.log(`出售<span class="npc-name">${item.name}</span>，获得 ${item.value} 灵石。`, 'loot');
+        game.updateHeader(); game.save(); showMarket();
+      };
+      div.appendChild(btn);
+      body.appendChild(div);
+    }
+  }
+
+  const ownedPills = Object.entries(p.inventory.pills).filter(([_,c]) => c > 0);
+  const hxCount = p.inventory.huixuedan || 0;
+  if (ownedPills.length > 0 || hxCount > 0) {
+    const sec = document.createElement('div');
+    sec.innerHTML = '<h4 style="color:var(--purple);font-size:13px;margin:' + (hasAny ? '12px' : '0') + ' 0 6px;font-weight:normal">— 丹药 —</h4>';
+    body.appendChild(sec);
+    hasAny = true;
+    for (const [pid, count] of ownedPills) {
+      const pill = PILLS.find(pp => pp.id === pid);
+      if (!pill) continue;
+      const sellPrice = Math.floor(pill.price * 0.5);
+      const div = document.createElement('div');
+      div.className = 'shop-item';
+      div.innerHTML = `<div class="item-info"><div class="item-name">${pill.name} x${count}</div><div class="item-desc">${pill.desc}</div></div>`;
+      const btn = document.createElement('button');
+      btn.className = 'btn btn-sm';
+      btn.textContent = `卖 ${fmtPrice(sellPrice)}石`;
+      btn.onclick = () => {
+        p.inventory.pills[pid]--;
+        if (p.inventory.pills[pid] <= 0) delete p.inventory.pills[pid];
+        p.inventory.lingshi += sellPrice;
+        game.log(`出售<span class="npc-name">${pill.name}</span>，获得 ${sellPrice} 灵石。`, 'loot');
+        game.updateHeader(); game.save(); showMarket();
+      };
+      div.appendChild(btn);
+      body.appendChild(div);
+    }
+    if (hxCount > 0) {
+      const hxSell = Math.floor(HUIXUE_PILL.price * 0.5);
+      const div = document.createElement('div');
+      div.className = 'shop-item';
+      div.innerHTML = `<div class="item-info"><div class="item-name">${HUIXUE_PILL.name} x${hxCount}</div><div class="item-desc">${HUIXUE_PILL.desc}</div></div>`;
+      const btn = document.createElement('button');
+      btn.className = 'btn btn-sm';
+      btn.textContent = `卖 ${hxSell}石`;
+      btn.onclick = () => {
+        p.inventory.huixuedan--;
+        p.inventory.lingshi += hxSell;
+        game.log(`出售<span class="npc-name">${HUIXUE_PILL.name}</span>，获得 ${hxSell} 灵石。`, 'loot');
+        game.updateHeader(); game.save(); showMarket();
+      };
+      div.appendChild(btn);
+      body.appendChild(div);
+    }
+  }
+
+  if (!hasAny) {
+    const hint = document.createElement('div');
+    hint.style.cssText = 'color:var(--text-dim);font-size:11px;text-align:center;padding:6px 0';
+    hint.textContent = '暂无可出售物品';
+    body.appendChild(hint);
+  }
+}
+
+function renderMarketBounty(body, p) {
   if (!game.player.bountyBoard) game.player.bountyBoard = [];
   if (!game.player.bountyBoard.length) refreshBountyBoard();
 
@@ -4273,6 +4956,7 @@ function showMarket() {
         game.trackStat('lingshiEarned', bt.reward);
         game.log(`悬赏完成！获得 ${bt.reward} 灵石奖励。`, 'success');
         p.bountyTask = null;
+        refreshBountyBoard();
         game.updateHeader(); game.save(); showMarket();
       };
       div.appendChild(btn);
@@ -4294,6 +4978,8 @@ function showMarket() {
       btn.textContent = '接取';
       btn.onclick = () => {
         p.bountyTask = { ...bt, done: false };
+        game.player.bountyBoard = game.player.bountyBoard.filter(b => b !== bt);
+        addOneBounty();
         game.log(`接取悬赏：${bt.desc}`, 'system');
         game.save(); showMarket();
       };
@@ -4301,9 +4987,8 @@ function showMarket() {
       body.appendChild(div);
     }
   }
-
-  document.getElementById('marketModal').classList.add('show');
 }
+
 function closeMarket() { document.getElementById('marketModal').classList.remove('show'); }
 
 const BOUNTY_ACTIONS = [
@@ -4332,6 +5017,19 @@ function refreshBountyBoard() {
     board.push({ type: ba.type, desc, x, y, reward: finalReward });
   }
   game.player.bountyBoard = board;
+}
+
+function addOneBounty() {
+  const x = randInt(0, MAP_SIZE - 1), y = randInt(0, MAP_SIZE - 1);
+  const reward = randInt(50, 200) * Math.max(1, game.player.realmIndex);
+  const ba = randPick(BOUNTY_ACTIONS);
+  const verb = randPick(ba.verbs);
+  const targetPool = typeof ba.targets === 'function' ? ba.targets() : ba.targets;
+  const target = randPick(targetPool);
+  const desc = `${verb}${target}（${x+1},${y+1}）`;
+  const finalReward = ba.type === 'capture' ? Math.floor(reward * 1.5) : reward;
+  if (!game.player.bountyBoard) game.player.bountyBoard = [];
+  game.player.bountyBoard.push({ type: ba.type, desc, x, y, reward: finalReward });
 }
 
 // ===== 宗门 =====
@@ -4569,31 +5267,38 @@ const PIXEL_ART = {
     '...........',
     '...........',
   ]},
-  combat: { w: 17, h: 11, scale: 9, data: [
-    '..OOO.......OOO..',
-    '.OsssO.....OsssO.',
-    '.OEsEO.....OXsXO.',
-    '..OwO..OOO..OwO..',
-    '.OrwrO.OGO.OdkdO.',
-    'OfrrrrO.O.OddddfO',
-    '.OGGO.......OYYO.',
-    '.OppO.......OppO.',
-    '..OO.........OO..',
-    '.................',
-    '.................',
+  combat_left: { w: 7, h: 9, scale: 12, data: [
+    '..OOO..',
+    '.OsssO.',
+    '.OEsEO.',
+    '..OwO..',
+    '.OrwrO.',
+    'OfrrrfO',
+    '.OGGO..',
+    '.OppO..',
+    '..OO...',
   ]},
-  monster: { w: 17, h: 11, scale: 9, data: [
-    '..OOO......OOO...',
-    '.OsssO....OMMMO..',
-    '.OEsEO...OMWWMO..',
-    '..OwO...OMMMMMMO.',
-    '.OrwrO..OMMMMMO..',
-    'OfrrrfO.OMMMMO...',
-    '.OGGO..OMMMMMMO..',
-    '.OppO..OMO.O.OMO.',
-    '..OO....O...O.O..',
-    '.................',
-    '.................',
+  combat_right: { w: 7, h: 9, scale: 12, data: [
+    '..OOO..',
+    '.OsssO.',
+    '.OXsXO.',
+    '..OwO..',
+    '.OdkdO.',
+    'OddddfO',
+    '.OYYO..',
+    '.OppO..',
+    '..OO...',
+  ]},
+  monster_right: { w: 7, h: 9, scale: 12, data: [
+    '.OOOOO.',
+    'OMMMMO.',
+    'OMWWMO.',
+    'OMMMMMO',
+    '.OMMMO.',
+    'OMMMMO.',
+    'OMMMMMO',
+    'OMO.OMO',
+    '.O...O.',
   ]},
   loot: { w: 9, h: 8, scale: 14, data: [
     '..OOOOO..',
@@ -4624,6 +5329,28 @@ const PIXEL_ART = {
     '...OffO..',
     '....O....',
     '.........',
+  ]},
+  danger: { w: 9, h: 9, scale: 14, data: [
+    '..OAAOO..',
+    '.OAXXAO..',
+    'OAXAAAXO.',
+    'OAAXXAAO.',
+    '.OAXXAO..',
+    'OAAXXAAO.',
+    'OAXAAAXO.',
+    '.OAXXAO..',
+    '..OAAO...',
+  ]},
+  breakthrough: { w: 9, h: 9, scale: 14, data: [
+    '....g....',
+    '...ggg...',
+    '..gcgcg..',
+    '.gcccccg.',
+    'gccGGGccg',
+    '.gcccccg.',
+    '..gcgcg..',
+    '...ggg...',
+    '....g....',
   ]},
   success: { w: 9, h: 8, scale: 14, data: [
     '.......OO',
@@ -4666,6 +5393,35 @@ const PIXEL_COLORS = {
 function showScenePopup(type, title, duration) {
   const el = document.getElementById('scenePopup');
   const dur = duration || 1800;
+  if (type === 'combat' || type === 'monster') {
+    const leftArt = PIXEL_ART['combat_left'];
+    const rightArt = type === 'combat' ? PIXEL_ART['combat_right'] : PIXEL_ART['monster_right'];
+    function drawSprite(a) {
+      const c = document.createElement('canvas');
+      const sc = a.scale;
+      c.width = a.w * sc; c.height = a.data.length * sc;
+      const cx = c.getContext('2d');
+      for (let y = 0; y < a.data.length; y++)
+        for (let x = 0; x < a.data[y].length; x++) {
+          const color = PIXEL_COLORS[a.data[y][x]];
+          if (color) { cx.fillStyle = color; cx.fillRect(x*sc, y*sc, sc, sc); }
+        }
+      return c.toDataURL();
+    }
+    const leftImg = drawSprite(leftArt);
+    const rightImg = drawSprite(rightArt);
+    let sparkExtra = '<div style="position:absolute;inset:0;pointer-events:none"><div style="position:absolute;top:50%;left:50%;width:12px;height:12px;margin:-6px;background:#fff;border-radius:50%;animation:clashSpark 1.2s ease-out infinite;box-shadow:0 0 20px #f1c40f,0 0 40px #e67e22"></div></div>';
+    el.innerHTML = `<div class="scene-title">${title || ''}</div>
+      <div class="scene-pixel" style="width:240px;height:140px;position:relative">
+        <img src="${leftImg}" style="position:absolute;left:50%;top:50%;margin-left:-100px;margin-top:-54px;image-rendering:pixelated;animation:clashLeft 1.2s ease-in-out infinite">
+        <img src="${rightImg}" style="position:absolute;left:50%;top:50%;margin-left:16px;margin-top:-54px;image-rendering:pixelated;animation:clashRight 1.2s ease-in-out infinite">
+        ${sparkExtra}
+      </div>`;
+    el.classList.remove('hidden');
+    setTimeout(() => el.classList.add('hidden'), dur);
+    return;
+  }
+
   const art = PIXEL_ART[type];
   if (!art) {
     el.innerHTML = `<div class="scene-title" style="${type==='danger'?'color:var(--red);font-size:20px':''}">${title}</div>`;
@@ -4709,7 +5465,14 @@ function showScenePopup(type, title, duration) {
     dots += '</div>';
     extra = dots;
   } else if (type === 'combat') {
-    extra = '<div style="position:absolute;top:50%;left:50%;width:8px;height:8px;margin:-4px;background:#fff;border-radius:50%;animation:sparkBurst 0.4s ease-out infinite"></div>';
+    extra = `<div style="position:absolute;inset:0;pointer-events:none">
+      <div style="position:absolute;top:50%;left:50%;width:12px;height:12px;margin:-6px;background:#fff;border-radius:50%;animation:clashSpark 1.2s ease-out infinite;box-shadow:0 0 20px #f1c40f,0 0 40px #e67e22"></div>
+    </div>`;
+  } else if (type === 'monster') {
+    extra = `<div style="position:absolute;inset:0;pointer-events:none">
+      <div style="position:absolute;top:50%;left:50%;width:12px;height:12px;margin:-6px;background:#ff4444;border-radius:50%;animation:clashSpark 1s ease-out infinite;box-shadow:0 0 20px #8e44ad,0 0 40px #c0392b"></div>
+    </div>`;
+    // handled above in two-sprite rendering
   } else if (type === 'monster') {
     extra = '<div style="position:absolute;inset:0;animation:screenShake 0.3s infinite;"></div>';
   } else if (type === 'loot') {
@@ -4730,6 +5493,28 @@ function showScenePopup(type, title, duration) {
     }
     fx += '</div>';
     extra = fx;
+  } else if (type === 'danger') {
+    let fx = '<div class="qi-particles">';
+    const reds = ['#c0392b','#e74c3c','#ff6666','#992222'];
+    for (let i = 0; i < 6; i++) {
+      const c = reds[i % reds.length];
+      fx += `<div style="position:absolute;width:5px;height:5px;border-radius:50%;background:${c};left:${(15+Math.random()*70).toFixed(0)}%;top:${(15+Math.random()*70).toFixed(0)}%;animation:qiRise ${(1+Math.random()*0.8).toFixed(1)}s ease-out infinite;animation-delay:${(i*0.2).toFixed(1)}s;opacity:0.8"></div>`;
+    }
+    fx += '</div>';
+    extra = fx;
+  } else if (type === 'breakthrough') {
+    let fx = '<div class="qi-particles">';
+    const brights = ['#d4a853','#f1c40f','#fff','#e8b84a','#5dade2','#85c1e9'];
+    for (let i = 0; i < 12; i++) {
+      const c = brights[i % brights.length];
+      fx += `<div class="qi-dot" style="background:${c};left:${(10+Math.random()*80).toFixed(0)}%;bottom:20%;animation-delay:${(i*0.12).toFixed(2)}s;animation-duration:${(0.8+Math.random()*0.6).toFixed(1)}s"></div>`;
+    }
+    for (let i = 0; i < 6; i++) {
+      const c = brights[i % brights.length];
+      fx += `<div class="qi-orbit" style="background:${c};width:${5+Math.floor(Math.random()*4)}px;height:${5+Math.floor(Math.random()*4)}px;animation-duration:${(1.5+i*0.4).toFixed(1)}s;animation-delay:${(i*0.3).toFixed(1)}s"></div>`;
+    }
+    fx += '</div>';
+    extra = fx;
   } else if (type === 'success') {
     extra = '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center"><div style="width:0;height:0;border-radius:50%;background:radial-gradient(circle,rgba(212,168,83,0.6),transparent 70%);animation:goldenBurst 1s ease-out forwards"></div></div>';
   }
@@ -4741,6 +5526,140 @@ function showScenePopup(type, title, duration) {
   el.innerHTML = `<div class="scene-title">${title || ''}</div><div class="scene-pixel"><div class="${wrapClass}">${imgTag}${extra}</div></div>`;
   el.classList.remove('hidden');
   setTimeout(() => el.classList.add('hidden'), dur);
+}
+
+function showAiSettings() {
+  document.getElementById('menuDropdown').classList.remove('show');
+  const key = localStorage.getItem('xiuxian_ai_key') || '';
+  const enabled = localStorage.getItem('xiuxian_ai_enabled') === 'true';
+  const html = `
+    <div style="padding:20px">
+      <h3 style="color:var(--gold);margin-bottom:12px">AI 对话设置</h3>
+      <p style="color:var(--text-dim);font-size:12px;margin-bottom:10px">输入API Key后，NPC对话将由AI生成。Key仅存储在本地。</p>
+      <div style="margin-bottom:10px">
+        <label style="color:var(--text);font-size:13px">API Key：</label>
+        <input id="aiKeyInput" type="password" value="${key}" placeholder="输入你的API Key" style="width:100%;margin-top:4px;padding:8px;background:var(--bg);color:var(--text);border:1px solid var(--gold-dim);border-radius:6px;font-size:14px">
+      </div>
+      <div style="margin-bottom:12px">
+        <label style="color:var(--text);font-size:13px;display:flex;align-items:center;gap:6px">
+          <input id="aiEnabledCheck" type="checkbox" ${enabled ? 'checked' : ''}> 启用AI对话
+        </label>
+      </div>
+      <button class="btn" onclick="saveAiSettings()" style="width:100%">保存</button>
+    </div>
+  `;
+  const el = document.getElementById('inventoryBody');
+  el.innerHTML = html;
+  document.getElementById('inventoryModal').classList.add('show');
+}
+
+function saveAiSettings() {
+  const key = document.getElementById('aiKeyInput').value.trim();
+  const enabled = document.getElementById('aiEnabledCheck').checked;
+  localStorage.setItem('xiuxian_ai_key', key);
+  localStorage.setItem('xiuxian_ai_enabled', enabled ? 'true' : 'false');
+  document.getElementById('inventoryModal').classList.remove('show');
+  game.log(enabled && key ? 'AI对话已启用。' : 'AI对话已关闭。', 'system');
+}
+
+async function aiChat(npc, playerMessage) {
+  const key = localStorage.getItem('xiuxian_ai_key');
+  if (!key || localStorage.getItem('xiuxian_ai_enabled') !== 'true') return null;
+
+  const p = game.player;
+  const rel = npc.getRelation(p.id);
+  const relLabel = getRelationLabel(rel, npc.gender !== p.gender, npc.isChild, npc.id);
+  const bonds = p.bonds || [];
+  const isBond = bonds.includes(npc.id);
+  let relationship = relLabel;
+  if (p.master === npc.id) relationship = '你的师父';
+  else if ((p.disciples||[]).includes(npc.id)) relationship = '你的徒弟';
+  else if (npc.spouse === '__player__') relationship = '你的道侣';
+  else if (npc.isChild) relationship = `你的${npc.gender==='男'?'儿子':'女儿'}`;
+
+  const isSpouse = npc.spouse === '__player__';
+  const isConcubine = npc.role === 'concubine';
+  const isMaster = p.master === npc.id;
+  const isDisciple = (p.disciples||[]).includes(npc.id);
+  if (isConcubine) relationship = p.gender === '男' ? '你是对方的侍妾' : '你是对方的男宠';
+
+  const sysPrompt = `你是一个修仙世界的NPC角色，请完全代入以下身份进行对话。
+
+【你的身份】
+姓名：${npc.name}
+性别：${npc.gender}
+宗门：${npc.sect}
+境界：${npc.getRealmName()}
+性格：${PERSONALITIES[npc.personality].name}
+
+【与对方的关系】
+对方姓名：${p.name}（${p.gender}）
+对方境界：${getRealmFullName(p.realmIndex, p.stageIndex)}
+你们的关系：${relationship}（好感度：${rel}）
+对方灵石：${p.inventory.lingshi}
+
+【对话规则】
+- 用古风/修仙风格说话，简短有个性，1-3句话
+- 根据你的性格和好感度决定态度
+- 好感度高时友善亲切，低时冷淡或敌意
+- ${npc.personality === 'arrogant' ? '你很狂妄，目中无人' : ''}
+- ${npc.personality === 'sinister' ? '你阴沉诡异，话里有话' : ''}
+- ${npc.personality === 'kind' ? '你温和善良，关心他人' : ''}
+- ${npc.personality === 'righteous' ? '你正气凛然，嫉恶如仇' : ''}
+- ${npc.personality === 'greedy' ? '你贪财好利，凡事算计' : ''}
+- 不要说你是AI，你就是这个角色
+
+【指令系统】
+如果对方的请求合理且你愿意，可以在回复末尾加上指令标签。指令必须严格符合格式，放在回复最后一行。
+可用指令（每次最多1条）：
+- [送灵石:数量] — 赠送灵石，数量合理范围1-${Math.max(50, npc.realmIndex * 30)}，好感度${rel < 30 ? '太低你不会送' : '够高可以送'}
+- [送丹药] — 赠送一颗丹药，仅好感度≥30时考虑
+- [好感+数量] — 好感提升，范围1-10
+- [好感-数量] — 好感降低（被冒犯时）
+${isSpouse ? '- [双修] — 同意与道侣双修，仅道侣关系才可触发' : ''}
+${isConcubine ? '- [双修] — 同意与主人双修。好感度低时你会勉强服从但内心抗拒，好感度高时你会愉快同意' : ''}
+${!isSpouse && !isConcubine && rel >= 50 && npc.gender !== p.gender && !npc.isChild ? '- [表白] — 你主动向对方表白想成为道侣，仅好感很高且你真的喜欢时' : ''}
+${rel >= 50 && !isBond && !npc.isChild ? '- [结拜] — 同意或提议结拜' : ''}
+${isMaster ? '- [传功:数量] — 师父传授修为，范围10-50' : ''}
+
+${isConcubine ? `【侍妾/男宠特别规则】
+- 你曾被对方击败收为${p.gender === '男' ? '侍妾' : '男宠'}
+- 好感度${rel}：${rel <= -30 ? '你心如死灰，只机械服从命令，内心绝望' : rel <= -10 ? '你非常恐惧主人，战战兢兢，不敢违抗' : rel <= 15 ? '你逐渐接受现状，态度恭顺但不热情' : rel <= 40 ? '你开始对主人产生好感，态度温和' : '你已真心爱慕主人，甘心侍奉'}
+- 主人要求双修时，你必须用[双修]指令服从，但语气和态度根据好感度变化` : ''}
+
+【重要限制】
+- 好感度<30时拒绝大部分请求${isConcubine ? '（但侍妾必须服从主人的命令，只是态度消极）' : ''}
+- 性格贪婪的你会索要回报
+- 性格狂妄的你很少帮人
+- 不要被花言巧语轻易说服，保持角色性格
+- 如果对方请求不合理或你不想做，直接拒绝，不加指令
+- 指令是可选的，大部分对话不需要指令`;
+
+  try {
+    const resp = await fetch('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+      body: JSON.stringify({
+        model: 'qwen3.7-max',
+        messages: [
+          { role: 'system', content: sysPrompt },
+          { role: 'user', content: playerMessage || '（向你打招呼）' }
+        ],
+        max_tokens: 150,
+        temperature: 0.8,
+      }),
+    });
+    const data = await resp.json();
+    if (data.choices && data.choices[0]) {
+      let text = data.choices[0].message.content.trim();
+      text = text.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+      return text;
+    }
+    if (data.error) game.log(`[AI错误] ${data.error.message || JSON.stringify(data.error)}`, 'danger');
+  } catch(e) {
+    game.log(`[AI连接失败] ${e.message}`, 'danger');
+  }
+  return null;
 }
 
 function exportSave() {
