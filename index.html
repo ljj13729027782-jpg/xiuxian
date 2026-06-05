@@ -559,12 +559,17 @@ body {
     <div id="menuDropdown" class="menu-dropdown">
       <button class="menu-item" onclick="showInventory()">背包</button>
       <button class="menu-item" onclick="showMemory()">记忆录</button>
+      <button class="menu-item" onclick="exportSave()">导出存档</button>
+      <button class="menu-item" onclick="importSave()">导入存档</button>
       <button class="menu-item" onclick="restartGame()">重新开始</button>
     </div>
   </div>
 
   <div id="logArea" class="log-area"></div>
 
+  <div style="text-align:center;font-size:11px;color:var(--text-dim);padding:3px 0;background:var(--bg-light);border-top:1px solid rgba(255,255,255,0.05)">
+    修仙历 <span id="worldYear">1</span> 年
+  </div>
   <div class="actions">
     <div id="mainActions">
       <div class="btn-row">
@@ -1518,6 +1523,7 @@ class Game {
       bonds: [],
       master: null,
       disciples: [],
+      worldYear: 1,
       infamy: 0,
       hunters: [],
       bountyTask: null,
@@ -1581,6 +1587,9 @@ class Game {
   }
 
   worldTick(years) {
+    this.player.worldYear = (this.player.worldYear || 1) + years;
+    this.player.lifeCurrent -= years;
+    document.getElementById('worldYear').textContent = this.player.worldYear;
     for (const npc of this.memoryStore.getAlive()) {
       npc.lifeCurrent -= years;
       if (npc.lifeCurrent <= 0) {
@@ -1591,23 +1600,44 @@ class Game {
         const isMaster = this.player.master === npc.id;
         const isDisciple = (this.player.disciples || []).includes(npc.id);
         const isChild = npc.isChild || npc.motherNpcId;
-        if (npc.spouse === '__player__') {
-          this.log(`噩耗传来——你的道侣<span class="npc-name">${npc.name}</span>寿元已尽，已经陨落……`, 'danger');
-        } else if (isChild) {
-          this.log(`晴天霹雳——你的${npc.gender === '男' ? '儿子' : '女儿'}<span class="npc-name">${npc.name}</span>不幸陨落！`, 'danger');
-        } else if (isMaster) {
-          this.log(`悲痛！你的师父<span class="npc-name">${npc.name}</span>已仙逝……`, 'danger');
-        } else if (isDisciple) {
-          this.log(`你的徒弟<span class="npc-name">${npc.name}</span>不幸身陨……`, 'danger');
-        } else if (isBond) {
-          this.log(`你的至交<span class="npc-name">${npc.name}</span>已经陨落……`, 'danger');
-        } else if (rel >= 30) {
-          this.log(`传闻好友${npc.name}已陨落。`, 'danger');
-        } else if (npc.isPermanent) {
-          this.log(`传闻${npc.name}已陨落。`, '');
+        let deathMsg = '';
+        if (npc.spouse === '__player__') deathMsg = `噩耗——你的道侣<span class="npc-name">${npc.name}</span>寿元已尽！`;
+        else if (isChild) deathMsg = `噩耗——你的${npc.gender === '男' ? '儿子' : '女儿'}<span class="npc-name">${npc.name}</span>陨落了！`;
+        else if (isMaster) deathMsg = `悲痛——你的师父<span class="npc-name">${npc.name}</span>仙逝了……`;
+        else if (isDisciple) deathMsg = `你的徒弟<span class="npc-name">${npc.name}</span>不幸身陨！`;
+        else if (isBond) deathMsg = `至交<span class="npc-name">${npc.name}</span>已经陨落……`;
+        else if (rel >= 30) deathMsg = `传闻好友${npc.name}已陨落。`;
+        else if (npc.isPermanent) { this.log(`传闻${npc.name}已陨落。`, ''); continue; }
+        if (deathMsg) {
+          showScenePopup('danger', npc.name + ' 陨落', 2000);
+          this.log(deathMsg, 'danger');
         }
       }
       if (npc.age !== null) npc.age += years;
+      if (npc.pregnant) {
+        npc.pregnant.turnsLeft -= years;
+        if (npc.pregnant.turnsLeft <= 0) {
+          const baby = this.generator.createRandomNPC(0, {
+            name: npc.pregnant.name, gender: npc.pregnant.gender,
+            sect: this.player.sect ? (getSectById(this.player.sect)||{}).name || '散修' : '散修',
+            realmIndex: 0, stageIndex: 0, exp: 0,
+          });
+          baby.isChild = true; baby.age = 0; baby.motherNpcId = npc.id;
+          baby.isPermanent = true; baby.changeRelation(this.player.id, 100);
+          this.memoryStore.add(baby);
+          npc.pregnant = null;
+          showScenePopup('success', '喜得贵子', 2000);
+          this.log(`<span class="npc-name">${npc.name}</span>诞下一${baby.gender === '男' ? '子' : '女'}，取名<span class="npc-name">${baby.name}</span>！`, 'pink');
+        }
+      }
+      if (npc.age !== null && npc.isChild && npc.age >= 20 && npc.age - years < 20) {
+        showScenePopup('success', npc.name + ' 成年', 1800);
+        this.log(`你的${npc.gender === '男' ? '儿子' : '女儿'}<span class="npc-name">${npc.name}</span>已经成年！`, 'pink');
+        this.placeNpcOnMap(npc); npc.tempTurns = 3;
+      }
+    }
+    if (this.player.lifeCurrent <= 0) {
+      this.die('你的寿元已尽，道消身陨……游戏结束。');
     }
   }
 
@@ -1690,6 +1720,7 @@ class Game {
     else if (infamy >= 60) infamyText = ' · <span style="color:var(--red)">臭名昭著</span>';
     else if (infamy >= 30) infamyText = ' · <span style="color:#e67e22">恶名远播</span>';
     document.getElementById('playerInfamy').innerHTML = infamyText;
+    document.getElementById('worldYear').textContent = p.worldYear || 1;
 
     const maxExp = REALMS[p.realmIndex].expPerStage;
     const atMax = isMaxRealm(p.realmIndex, p.stageIndex);
@@ -1765,7 +1796,7 @@ class Game {
     div.className = 'log-entry' + (type ? ' ' + type : '');
     div.innerHTML = text;
     area.appendChild(div);
-    area.scrollTop = area.scrollHeight;
+    requestAnimationFrame(() => area.scrollTop = area.scrollHeight);
   }
 
   hideAllActions() {
@@ -1915,13 +1946,8 @@ class Game {
     const dist = Math.abs(tx - this.mapSystem.playerX) + Math.abs(ty - this.mapSystem.playerY);
     if (dist === 0 || dist > maxRange) return;
 
-    this.player.lifeCurrent -= dist;
     this.worldTick(dist);
-    if (this.player.lifeCurrent <= 0) {
-      closeMap();
-      this.die('你在赶路途中寿元耗尽，道消身陨……游戏结束。');
-      return;
-    }
+    if (this.isDead) { closeMap(); return; }
 
     this.mapSystem.playerX = tx;
     this.mapSystem.playerY = ty;
@@ -1952,13 +1978,8 @@ class Game {
     showScenePopup('explore', '探 索', 1200);
     this.trackStat('explored');
 
-    const exploreYears = Math.max(1, Math.floor(this.player.realmIndex * 0.5) + 1);
-    this.player.lifeCurrent -= exploreYears;
-    this.worldTick(exploreYears);
-    if (this.player.lifeCurrent <= 0) {
-      this.die('你在探索途中寿元耗尽，道消身陨……游戏结束。');
-      return;
-    }
+    this.worldTick(1);
+    if (this.isDead) return;
 
     const cell = this.mapSystem.getCell(this.mapSystem.playerX, this.mapSystem.playerY);
     const qi = cell ? cell.qi : 2;
@@ -2783,13 +2804,8 @@ class Game {
     }
 
     showScenePopup('meditate', '修 整 疗 伤', 1500);
-    const yearsSpent = Math.max(1, Math.floor(this.player.realmIndex * 0.5) + 1);
-    this.player.lifeCurrent -= yearsSpent;
-    this.worldTick(yearsSpent);
-    if (this.player.lifeCurrent <= 0) {
-      this.die('你的寿元已尽，道消身陨……游戏结束。');
-      return;
-    }
+    this.worldTick(1);
+    if (this.isDead) return;
 
     const heal = Math.floor(this.player.hpMax * (0.3 + Math.random() * 0.3));
     this.player.hp = Math.min(this.player.hpMax, this.player.hp + heal);
@@ -2812,14 +2828,9 @@ class Game {
     showScenePopup('meditate', '闭 关 修 炼');
     const mYears = REALMS[this.player.realmIndex].meditateYears;
     const yearsSpent = randInt(mYears[0], mYears[1]);
-    this.player.lifeCurrent -= yearsSpent;
     this.worldTick(yearsSpent);
     this.trackStat('meditateYears', yearsSpent);
-
-    if (this.player.lifeCurrent <= 0) {
-      this.die('你的寿元已尽，道消身陨……游戏结束。');
-      return;
-    }
+    if (this.isDead) return;
 
     if (isMaxRealm(this.player.realmIndex, this.player.stageIndex)) {
       this.log(`闭关${yearsSpent}年，你已是渡劫大圆满，天地之下少有敌手。`, '');
@@ -2944,14 +2955,10 @@ class Game {
     if (this.isDead || this.inEncounter) return;
     const baseYears = Math.max(2, this.player.realmIndex * 3 + 2);
     const years = randInt(baseYears, baseYears * 3);
-    this.player.lifeCurrent -= years;
+    this.worldTick(years);
+    if (this.isDead) return;
 
-    if (this.player.lifeCurrent <= 0) {
-      this.die('岁月流逝，你的寿元已尽，道消身陨……游戏结束。');
-      return;
-    }
-
-    this.log(`时光荏苒，${years}年过去了……`, 'system');
+    this.log(`时光荏苒，${years}年过去了……（修仙历${this.player.worldYear}年）`, 'system');
     const events = this.evolutionEngine.advanceTime(this.memoryStore, years);
     if (!events.length) {
       this.log('江湖平静，未有大事发生。', '');
@@ -2972,34 +2979,6 @@ class Game {
       }
     }
     this.mapSystem.moveNPCs(this.memoryStore);
-    for (const npc of this.memoryStore.getAlive()) {
-      if (npc.pregnant) {
-        npc.pregnant.turnsLeft--;
-        if (npc.pregnant.turnsLeft <= 0) {
-          const baby = this.generator.createRandomNPC(0, {
-            name: npc.pregnant.name, gender: npc.pregnant.gender,
-            sect: this.player.sect ? (getSectById(this.player.sect)||{}).name || '散修' : '散修',
-            realmIndex: 0, stageIndex: 0, exp: 0,
-          });
-          baby.isChild = true;
-          baby.age = 0;
-          baby.motherNpcId = npc.id;
-          baby.isPermanent = true;
-          baby.changeRelation(this.player.id, 100);
-          this.memoryStore.add(baby);
-          npc.pregnant = null;
-          this.log(`<span class="npc-name">${npc.name}</span>诞下一${baby.gender === '男' ? '子' : '女'}，取名<span class="npc-name">${baby.name}</span>！`, 'pink');
-        }
-      }
-      if (npc.age !== null && npc.isChild) {
-        npc.age += years;
-        if (npc.age >= 20 && npc.age - years < 20) {
-          this.log(`你的${npc.gender === '男' ? '儿子' : '女儿'}<span class="npc-name">${npc.name}</span>已经成年（${npc.age}岁），从此踏上自己的修仙之路！`, 'pink');
-          this.placeNpcOnMap(npc);
-          npc.tempTurns = 3;
-        }
-      }
-    }
     for (const npc of this.memoryStore.getAlive()) {
       npc.lastHelped = false;
       if (npc.tempTurns > 0) {
@@ -3547,9 +3526,9 @@ class Game {
         this.log(`<span class="npc-name">${npc.name}</span>传来消息：「我寿元将尽，恐时日无多……望你珍重。」`, 'danger');
       }
       if (Math.random() < 0.08) {
-        const rx = randInt(1, MAP_SIZE), ry = randInt(1, MAP_SIZE);
         this.placeNpcOnMap(npc);
         npc.tempTurns = 3;
+        showScenePopup('danger', npc.name + ' 求救', 2000);
         this.log(`<span class="npc-name">${npc.name}</span>发来求救：「我遭人围攻，速来援救！」`, 'danger');
       }
     }
@@ -4327,19 +4306,30 @@ function showMarket() {
 }
 function closeMarket() { document.getElementById('marketModal').classList.remove('show'); }
 
+const BOUNTY_ACTIONS = [
+  { type: 'slay', verbs: ['击退','斩杀','驱逐','消灭'], targets: ['玄铁蛟','噬魂蝠','赤焰狼','幽冥蟒','金翅鹰','紫雷虎','暗影蛛','寒冰熊','妖化野猪','毒雾蝎'] },
+  { type: 'fetch', verbs: ['搜寻','采集','找回','取回'], targets: ['千年灵芝','火焰花','寒冰草','聚灵石','天星藤','玄铁矿','月华露','龙涎草','凤血果','紫云参'] },
+  { type: 'capture', verbs: ['缉拿','捉拿','击败','追捕'], targets: () => {
+    const names = []; for(let i=0;i<5;i++) names.push(randName()); return names;
+  }},
+  { type: 'fetch', verbs: ['寻找','搜救','找到','定位'], targets: () => {
+    const alive = game.memoryStore.getAlive();
+    return alive.length ? alive.map(n=>n.name) : ['失踪的散修','迷路的弟子','走失的药农'];
+  }},
+];
+
 function refreshBountyBoard() {
   const board = [];
   for (let i = 0; i < 3; i++) {
     const x = randInt(0, MAP_SIZE - 1), y = randInt(0, MAP_SIZE - 1);
-    const r = Math.random();
     const reward = randInt(50, 200) * Math.max(1, game.player.realmIndex);
-    if (r < 0.4) {
-      board.push({ type: 'slay', desc: `斩妖：前往（${x+1},${y+1}）击杀妖物`, x, y, reward });
-    } else if (r < 0.7) {
-      board.push({ type: 'fetch', desc: `寻物：前往（${x+1},${y+1}）探索取回物品`, x, y, reward });
-    } else {
-      board.push({ type: 'capture', desc: `缉拿：前往（${x+1},${y+1}）击败恶修`, x, y, reward: Math.floor(reward * 1.5) });
-    }
+    const ba = randPick(BOUNTY_ACTIONS);
+    const verb = randPick(ba.verbs);
+    const targetPool = typeof ba.targets === 'function' ? ba.targets() : ba.targets;
+    const target = randPick(targetPool);
+    const desc = `${verb}${target}（${x+1},${y+1}）`;
+    const finalReward = ba.type === 'capture' ? Math.floor(reward * 1.5) : reward;
+    board.push({ type: ba.type, desc, x, y, reward: finalReward });
   }
   game.player.bountyBoard = board;
 }
@@ -4677,7 +4667,10 @@ function showScenePopup(type, title, duration) {
   const el = document.getElementById('scenePopup');
   const dur = duration || 1800;
   const art = PIXEL_ART[type];
-  if (!art) { el.innerHTML = `<div class="scene-title">${title}</div>`; el.classList.remove('hidden'); setTimeout(() => el.classList.add('hidden'), dur); return; }
+  if (!art) {
+    el.innerHTML = `<div class="scene-title" style="${type==='danger'?'color:var(--red);font-size:20px':''}">${title}</div>`;
+    el.classList.remove('hidden'); setTimeout(() => el.classList.add('hidden'), dur); return;
+  }
 
   const canvas = document.createElement('canvas');
   const s = art.scale;
@@ -4748,6 +4741,39 @@ function showScenePopup(type, title, duration) {
   el.innerHTML = `<div class="scene-title">${title || ''}</div><div class="scene-pixel"><div class="${wrapClass}">${imgTag}${extra}</div></div>`;
   el.classList.remove('hidden');
   setTimeout(() => el.classList.add('hidden'), dur);
+}
+
+function exportSave() {
+  document.getElementById('menuDropdown').classList.remove('show');
+  const data = {
+    player: localStorage.getItem('xiuxian_player'),
+    memory: localStorage.getItem('xiuxian_memory'),
+    map: localStorage.getItem('xiuxian_map'),
+  };
+  const str = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
+  const ta = document.createElement('textarea');
+  ta.value = str;
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand('copy');
+  document.body.removeChild(ta);
+  if (navigator.clipboard) navigator.clipboard.writeText(str);
+  game.log('存档已复制到剪贴板！可粘贴保存到备忘录或发送给自己。', 'system');
+}
+
+function importSave() {
+  document.getElementById('menuDropdown').classList.remove('show');
+  const str = prompt('粘贴存档字符串：');
+  if (!str) return;
+  try {
+    const data = JSON.parse(decodeURIComponent(escape(atob(str))));
+    if (data.player) localStorage.setItem('xiuxian_player', data.player);
+    if (data.memory) localStorage.setItem('xiuxian_memory', data.memory);
+    if (data.map) localStorage.setItem('xiuxian_map', data.map);
+    location.reload();
+  } catch(e) {
+    alert('存档格式错误！');
+  }
 }
 
 (function checkSave() {
