@@ -1146,7 +1146,7 @@ function randMonsterName() { return randPick(MONSTER_PREFIX) + randPick(MONSTER_
 function getRealmFullName(ri, si) { return REALMS[ri].name + REALMS[ri].stages[si]; }
 
 function getTotalPower(ri, si) {
-  let t = 0;
+  let t = 1;
   for (let i = 0; i < ri; i++) t += REALMS[i].stages.length;
   return t + si;
 }
@@ -1167,6 +1167,7 @@ function getRelationLabel(v, isOpp, isChild, npcId) {
     const npcObj = game.memoryStore.getById(npcId);
     if (npcObj && npcObj.role === 'concubine') return game.player.gender === '男' ? '侍妾' : '男宠';
     if (npcObj && npcObj.role === 'puppet') return '傀儡';
+    if (npcObj && npcObj.role === 'parent') return npcObj.gender === '男' ? '父亲' : '母亲';
   }
   if (isChild && npcId) {
     const npc = game && game.memoryStore ? game.memoryStore.getById(npcId) : null;
@@ -1201,6 +1202,10 @@ function getRelationLabel(v, isOpp, isChild, npcId) {
 
 function getRelationCategory(v, isChild, npcId) {
   if (isChild) return 'blood';
+  if (npcId && game && game.memoryStore) {
+    const npcObj = game.memoryStore.getById(npcId);
+    if (npcObj && npcObj.role === 'parent') return 'blood';
+  }
   const bonds = (game && game.player && game.player.bonds) || [];
   if (npcId && bonds.includes(npcId)) return 'soulmate';
   if (v >= 30) return 'friend';
@@ -1593,6 +1598,7 @@ class Game {
     } else {
       const o = ORIGINS.find(x => x.id === origin);
       if (o) o.apply(this.player);
+      this.generateParents();
     }
     this.memoryStore.load();
     for (const npc of this.memoryStore.getAll()) {
@@ -1609,6 +1615,37 @@ class Game {
     const o = ORIGINS.find(x => x.id === this.player.origin);
     this.log(`【出身：${o ? o.name : '凡人'}】${o ? o.desc : ''}`, 'system');
     this.log('你踏上了修仙之路，前方道阻且长。', 'system');
+  }
+
+  generateParents() {
+    const surname = this.player.name[0];
+    const parentRI = randInt(1, 2);
+    const parentSI = randInt(0, REALMS[parentRI].stages.length - 1);
+    const sectName = this.player.sect ? (getSectById(this.player.sect)||{}).name || '散修' : '散修';
+
+    const father = this.generator.createRandomNPC(parentRI, {
+      name: surname + randPick(GIVEN_NAMES), gender: '男',
+      sect: sectName, personality: randPick(['righteous', 'kind', 'righteous']),
+      realmIndex: parentRI, stageIndex: parentSI,
+    });
+    father.role = 'parent';
+    father.isPermanent = true;
+    father.changeRelation(this.player.id, 80);
+    this.memoryStore.add(father);
+
+    const motherRI = randInt(0, parentRI);
+    const motherSI = randInt(0, REALMS[motherRI].stages.length - 1);
+    const mother = this.generator.createRandomNPC(motherRI, {
+      gender: '女', sect: sectName,
+      personality: randPick(['kind', 'kind', 'righteous']),
+      realmIndex: motherRI, stageIndex: motherSI,
+    });
+    mother.role = 'parent';
+    mother.isPermanent = true;
+    mother.changeRelation(this.player.id, 80);
+    this.memoryStore.add(mother);
+
+    this.memoryStore.save();
   }
 
   save() {
@@ -1661,6 +1698,7 @@ class Game {
         if (isConcubine) deathMsg = `你的${this.player.gender === '男' ? '侍妾' : '男宠'}<span class="npc-name">${npc.name}</span>因${cause}而陨落！`;
         else if (isPuppet) deathMsg = `你的傀儡<span class="npc-name">${npc.name}</span>因${cause}而损毁！`;
         else if (npc.spouse === '__player__') deathMsg = `噩耗——你的道侣<span class="npc-name">${npc.name}</span>因${cause}而陨落！`;
+        else if (npc.role === 'parent') deathMsg = `噩耗——你的${npc.gender === '男' ? '父亲' : '母亲'}<span class="npc-name">${npc.name}</span>因${cause}而${cause === '寿元耗尽' ? '仙逝' : '陨落'}……`;
         else if (isChild) deathMsg = `噩耗——你的${npc.gender === '男' ? '儿子' : '女儿'}<span class="npc-name">${npc.name}</span>因${cause}而陨落！`;
         else if (isMaster) deathMsg = `悲痛——你的师父<span class="npc-name">${npc.name}</span>因${cause}而仙逝……`;
         else if (isDisciple) deathMsg = `你的徒弟<span class="npc-name">${npc.name}</span>因${cause}而身陨！`;
@@ -1742,6 +1780,17 @@ class Game {
             if ((this.mapSystem.grid[y][x].npcIds||[]).includes(npc.id)) pos = `（${x+1},${y+1}）`;
         showScenePopup('danger', npc.name + ' 求救', 2500);
         this.log(`<span class="npc-name">${npc.name}</span>传来求救：「${rt.msg}！我在${pos}，快来！」`, 'danger');
+      }
+    }
+
+    if (!this.isDead && !this.inEncounter && this.player.sect) {
+      const sect = getSectById(this.player.sect);
+      if (sect && sect.rivals.length && Math.random() < 0.03) {
+        this.pendingSectEvent = 'war';
+      }
+      const wy = this.player.worldYear || 1;
+      if (sect && wy % 50 < years && wy >= 50) {
+        this.pendingSectEvent = 'tournament';
       }
     }
 
@@ -1988,6 +2037,12 @@ class Game {
   }
 
   showMainActions() {
+    if (this.pendingSectEvent) {
+      const evt = this.pendingSectEvent;
+      this.pendingSectEvent = null;
+      if (evt === 'war') { startSectWar(); return; }
+      if (evt === 'tournament') { startSectTournament(); return; }
+    }
     this.hideAllActions();
     document.getElementById('mainActions').classList.remove('hidden');
     this.inEncounter = false;
@@ -2187,6 +2242,8 @@ class Game {
     const replyIdx = Math.min(idx, npcReplies.length - 1);
     const npcReply = this.dialogueEngine.replaceVars(npcReplies[replyIdx], npc, this.player);
     this.log(`<span class="npc-name">${npc.name}</span>：<span class="dialogue">"${npcReply}"</span>`);
+    _aiChatHistory.push({ role: 'user', content: playerDialogue });
+    _aiChatHistory.push({ role: 'assistant', content: npcReply });
 
     if (opt.mod !== 0) {
       const sign = opt.mod > 0 ? '+' : '';
@@ -2783,6 +2840,9 @@ class Game {
 
     const dialogue = this.dialogueEngine.getDialogue(npc, this.player);
     this.log(`<span class="npc-name">${npc.name}</span>：<span class="dialogue">"${dialogue}"</span>`);
+    _aiChatHistory = [];
+    _aiChatNpcId = npc.id;
+    _aiChatHistory.push({ role: 'assistant', content: dialogue });
     this.showDialogueOptions(npc);
   }
 
@@ -4925,6 +4985,9 @@ function talkToNpc(npc) {
   game.log(`「${npc.sect}」· <span class="realm-text">${npc.getRealmName()}</span> · ${pName}（${relLabel}）`, '');
   const dialogue = game.dialogueEngine.getDialogue(npc, game.player);
   game.log(`<span class="npc-name">${npc.name}</span>：<span class="dialogue">"${dialogue}"</span>`);
+  _aiChatHistory = [];
+  _aiChatNpcId = npc.id;
+  _aiChatHistory.push({ role: 'assistant', content: dialogue });
   game.showDialogueOptions(npc);
 }
 
@@ -5297,31 +5360,235 @@ function trySectTrial(sect) {
   const trialRI = Math.max(0, game.player.realmIndex - 1 + Math.floor(Math.random() * 2));
   const trialSI = randInt(0, REALMS[trialRI].stages.length - 1);
   const trialName = randName();
-  const trialPower = game.combatEngine.calcPower(trialRI, trialSI, randInt(0, 5));
-  const pPower = game.getPlayerCombatPower();
 
   game.log(`${sect.name}长老：「既然你想加入本门，先过我弟子${trialName}这一关。」`, '');
   game.log(`守门弟子<span class="npc-name">${trialName}</span>（<span class="realm-text">${getRealmFullName(trialRI, trialSI)}</span>）向你出手！`, 'combat');
 
-  if (game.combatEngine.fight(pPower, trialPower)) {
-    game.player.sect = sect.id;
-    game.log(`你击败了${trialName}！长老满意地点头：「不错，从今日起你便是${sect.name}弟子了。」`, 'success');
-    game.log(`【已加入${sect.name}】修炼加成+${Math.round((sect.expBonus-1)*100)}%`, 'system');
-    const maxG = Math.min(game.player.realmIndex + 2, 4);
-    const sectSkills = SKILLS.filter(s => SKILL_GRADES[s.grade] <= maxG && !(game.player.skills||[]).includes(s.id));
-    if (sectSkills.length) {
-      const sk = randPick(sectSkills);
-      if (!game.player.skills) game.player.skills = [];
-      game.player.skills.push(sk.id);
-      if (!game.player.activeSkill) game.player.activeSkill = sk.id;
-      game.log(`宗门传授功法<span class="npc-name">「${sk.name}」</span>！`, 'loot');
+  showScenePopup('combat', sect.name + ' 入门试炼', 1200);
+  game.startCombat(trialName, trialRI, trialSI, randInt(0, 5),
+    () => {
+      game.player.sect = sect.id;
+      game.log(`你击败了${trialName}！长老满意地点头：「不错，从今日起你便是${sect.name}弟子了。」`, 'success');
+      game.log(`【已加入${sect.name}】修炼加成+${Math.round((sect.expBonus-1)*100)}%`, 'system');
+      const maxG = Math.min(game.player.realmIndex + 2, 4);
+      const sectSkills = SKILLS.filter(s => SKILL_GRADES[s.grade] <= maxG && !(game.player.skills||[]).includes(s.id));
+      if (sectSkills.length) {
+        const sk = randPick(sectSkills);
+        if (!game.player.skills) game.player.skills = [];
+        game.player.skills.push(sk.id);
+        if (!game.player.activeSkill) game.player.activeSkill = sk.id;
+        game.log(`宗门传授功法<span class="npc-name">「${sk.name}」</span>！`, 'loot');
+      }
+      assignSectMaster(sect);
+      game.updateHeader(); game.save();
+      game.showMainActions();
+    },
+    () => {
+      game.player.hp = Math.max(1, game.player.hp);
+      game.log(`你不敌${trialName}，试炼失败。长老摇头：「修行尚浅，日后再来吧。」`, 'danger');
+      game.updateHeader(); game.save();
+      game.showMainActions();
     }
-  } else {
-    const dmg = randInt(Math.floor(game.player.hpMax * 0.05), Math.floor(game.player.hpMax * 0.1));
-    game.player.hp = Math.max(1, game.player.hp - dmg);
-    game.log(`你不敌${trialName}，试炼失败。长老摇头：「修行尚浅，日后再来吧。」气血-${dmg}`, 'danger');
+  );
+}
+
+function assignSectMaster(sect) {
+  if (game.player.master) return;
+  const masterRI = Math.min(game.player.realmIndex + randInt(1, 2), REALMS.length - 1);
+  const masterSI = randInt(0, REALMS[masterRI].stages.length - 1);
+  const masterPersonality = randPick(['righteous', 'kind', 'righteous']);
+  const master = game.generator.createRandomNPC(masterRI, {
+    sect: sect.name, personality: masterPersonality,
+    realmIndex: masterRI, stageIndex: masterSI,
+  });
+  master.isPermanent = true;
+  master.masterNpcId = '__isMaster__';
+  master.changeRelation(game.player.id, 40);
+  game.player.master = master.id;
+  game.memoryStore.add(master);
+  const sp = sect.mapPos;
+  const mc = game.mapSystem.getCell(sp.x, sp.y);
+  if (mc) { if (!mc.npcIds) mc.npcIds = []; mc.npcIds.push(master.id); }
+  master.mapX = sp.x; master.mapY = sp.y;
+  game.log(`长老指派<span class="npc-name">${master.name}</span>（<span class="realm-text">${master.getRealmName()}</span>）为你的师父。`, 'success');
+  game.log(`【拜${master.name}为师】`, 'system');
+
+  const fellowCount = randInt(2, 3);
+  for (let i = 0; i < fellowCount; i++) {
+    const fRI = Math.max(0, game.player.realmIndex + randInt(-1, 1));
+    const fSI = randInt(0, REALMS[fRI].stages.length - 1);
+    const fellow = game.generator.createRandomNPC(fRI, {
+      sect: sect.name, realmIndex: fRI, stageIndex: fSI,
+    });
+    fellow.isPermanent = true;
+    fellow.masterNpcId = master.id;
+    fellow.changeRelation(game.player.id, 20);
+    game.memoryStore.add(fellow);
+    game.placeNpcOnMap(fellow);
+    const diff = getRealmDiff(fellow.realmIndex, fellow.stageIndex, game.player.realmIndex, game.player.stageIndex);
+    const label = diff === 'higher' ? (fellow.gender === '男' ? '师兄' : '师姐') : (fellow.gender === '男' ? '师弟' : '师妹');
+    game.log(`同门${label}<span class="npc-name">${fellow.name}</span>（<span class="realm-text">${fellow.getRealmName()}</span>）前来见礼。`, '');
   }
-  game.updateHeader(); game.save();
+  game.memoryStore.save();
+}
+
+function startSectWar() {
+  const p = game.player;
+  const sect = getSectById(p.sect);
+  if (!sect || !sect.rivals.length) return;
+  const rivalId = randPick(sect.rivals);
+  const rival = getSectById(rivalId);
+  if (!rival) return;
+
+  showScenePopup('danger', '宗 门 战', 2000);
+  game.log(`<span style="color:var(--red);font-size:15px">【宗门战】</span>${rival.name}来犯！${sect.name}号召弟子迎敌！`, 'danger');
+
+  game.hideAllActions();
+  const container = document.getElementById('dialogueActions');
+  container.classList.remove('hidden');
+  container.innerHTML = `
+    <div style="color:var(--text-dim);font-size:13px;margin-bottom:6px;text-align:center">${rival.name}大举进攻${sect.name}，长老传令弟子参战。</div>
+    <div class="btn-row">
+      <button class="btn" style="color:var(--red);border-color:var(--red)" onclick="joinSectWar('${rivalId}')">参战！</button>
+      <button class="btn" onclick="skipSectWar()">按兵不动</button>
+    </div>`;
+  game.inEncounter = true;
+}
+
+function skipSectWar() {
+  game.log('你选择按兵不动，未参与此次宗门战。', 'system');
+  game.showMainActions();
+}
+
+function joinSectWar(rivalId) {
+  const rival = getSectById(rivalId);
+  const rounds = randInt(1, 3);
+  game.pendingSectWar = { rivalId, round: 0, total: rounds, wins: 0 };
+  nextSectWarRound();
+}
+
+function nextSectWarRound() {
+  const sw = game.pendingSectWar;
+  if (!sw) { game.showMainActions(); return; }
+  sw.round++;
+  if (sw.round > sw.total) {
+    const rival = getSectById(sw.rivalId);
+    const reward = sw.wins * randInt(50, 120) * Math.max(1, game.player.realmIndex);
+    const expReward = sw.wins * randInt(30, 80) * (1 + game.player.realmIndex * 0.3);
+    game.player.inventory.lingshi += reward;
+    game.player.exp = Math.min(game.player.exp + Math.floor(expReward), REALMS[game.player.realmIndex].expPerStage);
+    game.log(`宗门战结束！你${sw.total}战${sw.wins}胜，获得 ${reward} 灵石，修为+${Math.floor(expReward)}。`, 'success');
+    game.pendingSectWar = null;
+    game.updateHeader(); game.save();
+    game.showMainActions();
+    return;
+  }
+  const rival = getSectById(sw.rivalId);
+  const eRI = Math.max(0, game.player.realmIndex + randInt(-1, 1));
+  const eSI = randInt(0, REALMS[eRI].stages.length - 1);
+  const eName = randName();
+  game.log(`第${sw.round}/${sw.total}场：${rival.name}弟子<span class="npc-name">${eName}</span>（<span class="realm-text">${getRealmFullName(eRI, eSI)}</span>）上前挑战！`, 'combat');
+  game.startCombat(eName, eRI, eSI, randInt(0, 10),
+    () => {
+      sw.wins++;
+      game.log(`你击败了${eName}！${sw.total - sw.round > 0 ? '下一个对手已就位。' : ''}`, 'success');
+      nextSectWarRound();
+    },
+    () => {
+      game.player.hp = Math.max(Math.floor(game.player.hpMax * 0.2), game.player.hp);
+      game.log(`你不敌${eName}，被同门扶下场疗伤。`, 'danger');
+      nextSectWarRound();
+    }
+  );
+}
+
+function startSectTournament() {
+  const p = game.player;
+  const sect = getSectById(p.sect);
+  if (!sect) return;
+
+  showScenePopup('success', '宗 门 大 比', 2000);
+  game.log(`<span style="color:var(--gold);font-size:15px">【宗门大比】</span>各大宗门齐聚，年轻弟子同台竞技！`, 'system');
+
+  game.hideAllActions();
+  const container = document.getElementById('dialogueActions');
+  container.classList.remove('hidden');
+  container.innerHTML = `
+    <div style="color:var(--text-dim);font-size:13px;margin-bottom:6px;text-align:center">百年一度的宗门大比即将开始，各宗门派出年轻豪杰一较高下。</div>
+    <div class="btn-row">
+      <button class="btn" style="color:var(--gold);border-color:var(--gold)" onclick="joinTournament()">参加大比</button>
+      <button class="btn" onclick="skipTournament()">旁观</button>
+    </div>`;
+  game.inEncounter = true;
+}
+
+function skipTournament() {
+  game.log('你选择在一旁观战，未参加此次大比。', 'system');
+  game.showMainActions();
+}
+
+function joinTournament() {
+  const totalRounds = randInt(3, 5);
+  game.pendingTournament = { round: 0, total: totalRounds, wins: 0 };
+  nextTournamentRound();
+}
+
+function nextTournamentRound() {
+  const t = game.pendingTournament;
+  if (!t) { game.showMainActions(); return; }
+  t.round++;
+  if (t.round > t.total) {
+    const reward = t.wins * randInt(80, 200) * Math.max(1, game.player.realmIndex);
+    const expReward = t.wins * randInt(50, 120) * (1 + game.player.realmIndex * 0.3);
+    game.player.inventory.lingshi += reward;
+    game.player.exp = Math.min(game.player.exp + Math.floor(expReward), REALMS[game.player.realmIndex].expPerStage);
+    game.log(`大比结束！你${t.total}战${t.wins}胜！获得 ${reward} 灵石，修为+${Math.floor(expReward)}。`, 'success');
+    if (t.wins >= t.total) {
+      const tier = Math.min(game.player.realmIndex + 1, TREASURES.length - 1);
+      const prize = { ...TREASURES[randInt(Math.max(0, tier - 1), tier)] };
+      game.player.inventory.items.push(prize);
+      game.log(`全胜夺魁！获得奖品<span class="npc-name">${prize.name}</span>（战力+${prize.power}）！`, 'loot');
+      const maxG = Math.min(game.player.realmIndex + 2, 4);
+      const avail = SKILLS.filter(s => SKILL_GRADES[s.grade] <= maxG && !(game.player.skills||[]).includes(s.id));
+      if (avail.length) {
+        const sk = randPick(avail);
+        if (!game.player.skills) game.player.skills = [];
+        game.player.skills.push(sk.id);
+        game.log(`大比冠军奖励功法<span class="npc-name">「${sk.name}」</span>！`, 'loot');
+      }
+    }
+    game.pendingTournament = null;
+    game.updateHeader(); game.save();
+    game.showMainActions();
+    return;
+  }
+  const otherSects = SECTS.filter(s => s.id !== game.player.sect);
+  const eSect = randPick(otherSects);
+  const diff = t.round - 1;
+  const eRI = Math.min(game.player.realmIndex + Math.floor(diff / 2), REALMS.length - 1);
+  const eSI = Math.min(randInt(0, 2) + diff, REALMS[eRI].stages.length - 1);
+  const eName = randName();
+  game.log(`第${t.round}/${t.total}场：${eSect.name}弟子<span class="npc-name">${eName}</span>（<span class="realm-text">${getRealmFullName(eRI, eSI)}</span>）登台！`, 'combat');
+  game.startCombat(eName, eRI, eSI, randInt(3, 15) + diff * 5,
+    () => {
+      t.wins++;
+      game.log(`你击败了${eName}！观众席传来阵阵叫好声。`, 'success');
+      nextTournamentRound();
+    },
+    () => {
+      game.player.hp = Math.max(Math.floor(game.player.hpMax * 0.3), game.player.hp);
+      game.log(`你不敌${eName}，遗憾落败。`, 'danger');
+      game.log(`大比结束！你止步第${t.round}轮，${t.round}战${t.wins}胜。`, 'system');
+      const reward = t.wins * randInt(80, 200) * Math.max(1, game.player.realmIndex);
+      if (reward > 0) {
+        game.player.inventory.lingshi += reward;
+        game.log(`获得奖励 ${reward} 灵石。`, 'loot');
+      }
+      game.pendingTournament = null;
+      game.updateHeader(); game.save();
+      game.showMainActions();
+    }
+  );
 }
 
 // ===== 背包 =====
@@ -5756,9 +6023,17 @@ function saveAiSettings() {
   game.log(enabled && key ? 'AI对话已启用。' : 'AI对话已关闭。', 'system');
 }
 
+let _aiChatHistory = [];
+let _aiChatNpcId = null;
+
 async function aiChat(npc, playerMessage) {
   const key = localStorage.getItem('xiuxian_ai_key');
   if (!key || localStorage.getItem('xiuxian_ai_enabled') !== 'true') return null;
+
+  if (_aiChatNpcId !== npc.id) {
+    _aiChatHistory = [];
+    _aiChatNpcId = npc.id;
+  }
 
   const p = game.player;
   const rel = npc.getRelation(p.id);
@@ -5789,7 +6064,9 @@ async function aiChat(npc, playerMessage) {
 【与对方的关系】
 对方姓名：${p.name}（${p.gender}）
 对方境界：${getRealmFullName(p.realmIndex, p.stageIndex)}
+对方宗门：${p.sect ? (getSectById(p.sect)||{}).name || '散修' : '散修'}
 你们的关系：${relationship}（好感度：${rel}）
+${p.master && npc.masterNpcId === p.master ? '你们同拜一位师父，是真正的同门师兄弟姐妹。' : p.sect && npc.sect === (getSectById(p.sect)||{}).name ? '你们虽在同一宗门，但并非同门师兄弟（没有共同师父）。不要称呼对方师兄/师弟/师姐/师妹。' : ''}
 对方灵石：${p.inventory.lingshi}
 
 【对话规则】
@@ -5830,15 +6107,16 @@ ${isConcubine ? `【侍妾/男宠特别规则】
 - 指令是可选的，大部分对话不需要指令`;
 
   try {
+    const userMsg = playerMessage || '（向你打招呼）';
+    const messages = [{ role: 'system', content: sysPrompt }];
+    for (const h of _aiChatHistory.slice(-8)) messages.push(h);
+    messages.push({ role: 'user', content: userMsg });
     const resp = await fetch('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
       body: JSON.stringify({
         model: 'qwen3.7-max',
-        messages: [
-          { role: 'system', content: sysPrompt },
-          { role: 'user', content: playerMessage || '（向你打招呼）' }
-        ],
+        messages,
         max_tokens: 150,
         temperature: 0.8,
       }),
@@ -5847,6 +6125,9 @@ ${isConcubine ? `【侍妾/男宠特别规则】
     if (data.choices && data.choices[0]) {
       let text = data.choices[0].message.content.trim();
       text = text.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+      _aiChatHistory.push({ role: 'user', content: userMsg });
+      _aiChatHistory.push({ role: 'assistant', content: text });
+      if (_aiChatHistory.length > 10) _aiChatHistory = _aiChatHistory.slice(-10);
       return text;
     }
     if (data.error) game.log(`[AI错误] ${data.error.message || JSON.stringify(data.error)}`, 'danger');
