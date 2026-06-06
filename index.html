@@ -815,10 +815,17 @@ const SURNAMES = [
   '秦', '宋', '谢', '江', '温', '卫', '裴', '霍', '慕容', '上官',
 ];
 
-const GIVEN_NAMES = [
-  '无尘', '沐晚', '青山', '惊鸿', '凌霜', '长歌', '云深', '逸风',
-  '念卿', '傲天', '寒星', '若水', '飞羽', '子衿', '明月', '清欢',
-  '映雪', '归尘', '九歌', '听雨', '望舒', '扶摇', '天行', '问道',
+const NAME_CHAR1 = [
+  '无','沐','青','惊','凌','长','云','逸','念','傲','寒','若','飞','子','明','清',
+  '映','归','九','听','望','扶','天','问','玄','墨','灵','紫','冰','风','雷','夜',
+  '银','碧','华','瑶','朝','暮','千','万','素','幽','浮','落','孤','断','惜','慕',
+  '笑','啸','烟','霜','梦','影','晓','尘','玉','白','如','独','澜','拂','潇','湛',
+];
+const NAME_CHAR2 = [
+  '尘','晚','山','鸿','霜','歌','深','风','卿','天','星','水','羽','衿','月','欢',
+  '雪','辰','曲','雨','舒','摇','行','道','澈','染','犀','烟','心','吟','霄','影',
+  '河','翠','裳','琴','阳','色','秋','里','衣','冥','生','叶','鹤','崖','花','容',
+  '傲','啸','寒','瑟','离','尘','渊','痕','然','璃','墨','吟','弦','若','微','殇',
 ];
 
 const PERSONALITIES = {
@@ -832,54 +839,56 @@ const PERSONALITIES = {
 const DIALOGUES = {
   neutral: {
     arrogant: {
-      higher: ['哼，区区{Player_Realm}也敢在本座面前现身？', '你是哪来的蝼蚁？别挡本座的路。'],
-      equal:   ['看什么看？再看把你眼珠子挖出来。', '此地是本座先到的，识相的就滚。'],
-      lower:   ['……你比我强，但别以为我会服你。', '哼，不过是运气好罢了。'],
+      higher: ['哼，区区{Player_Realm}也敢在本座面前现身？', '你是哪来的蝼蚁？别挡本座的路。', '本座懒得和你这种小角色计较，滚。', '就凭你，也配和本座说话？', '（居高临下地扫了你一眼）无聊。'],
+      equal:   ['看什么看？再看把你眼珠子挖出来。', '此地是本座先到的，识相的就滚。', '又是一个不知天高地厚的，真烦。', '你是来找死的还是来挡路的？'],
+      lower:   ['……你比我强，但别以为我会服你。', '哼，不过是运气好罢了。', '前辈好大的架子，但我可不会低头。', '（不甘地抱拳）……见过。'],
     },
     kind: {
-      higher: ['这位道友有礼了，在下{NPC_Sect}弟子{NPC_Name}。', '道友初来此地？在下可以指点一二。'],
-      equal:   ['这位道友请了，在下{NPC_Sect}弟子，幸会。', '缘分使然，你我在此相遇，可否一叙？'],
-      lower:   ['前辈好，晚辈{NPC_Name}，来自{NPC_Sect}。', '见过前辈，晚辈这厢有礼了。'],
+      higher: ['这位道友有礼了，在下{NPC_Sect}弟子{NPC_Name}。', '道友初来此地？在下可以指点一二。', '道友气色不太好，可需要休息一下？', '这位道友，前方有妖兽出没，还请小心。', '道友有礼了，这条路走下去有处灵泉，可去看看。'],
+      equal:   ['这位道友请了，在下{NPC_Sect}弟子，幸会。', '缘分使然，你我在此相遇，可否一叙？', '道友也是来此处历练的？真是有缘。', '同道中人，何不坐下喝杯灵茶？'],
+      lower:   ['前辈好，晚辈{NPC_Name}，来自{NPC_Sect}。', '见过前辈，晚辈这厢有礼了。', '前辈修为精深，晚辈仰慕已久。', '晚辈在此修行多年，若前辈有需要，尽管吩咐。'],
     },
     righteous: {
-      higher: ['你是何人？报上名来。', '此处妖气弥漫，你可要小心行事。'],
-      equal:   ['道友可是来此地历练的？当以道心为先。', '你我同为修道之人，当互勉互励。'],
-      lower:   ['前辈威仪不凡，晚辈敬仰。', '前辈修为高深，还望多多指教。'],
+      higher: ['你是何人？报上名来。', '此处妖气弥漫，你可要小心行事。', '此地禁止斗法，你可知道规矩？', '你修为尚浅，此处非你久留之地。', '行走江湖，当心魔道中人。'],
+      equal:   ['道友可是来此地历练的？当以道心为先。', '你我同为修道之人，当互勉互励。', '道友面生，可有门派？', '修仙之路，贵在正道，道友谨记。'],
+      lower:   ['前辈威仪不凡，晚辈敬仰。', '前辈修为高深，还望多多指教。', '晚辈修行日浅，斗胆请教前辈一二。', '前辈正气凛然，晚辈心生敬意。'],
     },
     greedy: {
-      higher: ['嘿嘿，你身上可有什么好东西？', '道友看起来……不太富裕啊。'],
-      equal:   ['嘿，做笔买卖如何？我这有好东西。', '道友可有灵石？交个朋友嘛。'],
-      lower:   ['前辈大人大量，可否赏晚辈些灵石？', '能遇见前辈是晚辈的福气，不知……'],
+      higher: ['嘿嘿，你身上可有什么好东西？', '道友看起来……不太富裕啊。', '哟，这位小兄弟，要不要买点好东西？', '我看你资质不错，要不要投资一下？便宜不了你吃亏。', '嘿，把你储物袋让我瞧瞧？就看看，不拿。'],
+      equal:   ['嘿，做笔买卖如何？我这有好东西。', '道友可有灵石？交个朋友嘛。', '这位道友，有没有兴趣做一单生意？', '互利互惠，道友考虑一下？'],
+      lower:   ['前辈大人大量，可否赏晚辈些灵石？', '能遇见前辈是晚辈的福气，不知……', '前辈随手漏一点，够晚辈用几年了。', '晚辈这有些小玩意，前辈看看？'],
     },
     sinister: {
-      higher: ['（阴恻恻地打量你）……有意思。', '别过来，我不喜欢和弱者说话。'],
-      equal:   ['……你最好别惹我。', '（沉默地盯着你看了许久）走吧。'],
-      lower:   ['（低头不语，眼神闪烁）', '前辈……有何吩咐？'],
+      higher: ['（阴恻恻地打量你）……有意思。', '别过来，我不喜欢和弱者说话。', '（眯眼打量）你的血气……嘿嘿。', '走开，别让我闻到你的气息。', '（舔了舔嘴唇）看起来很嫩啊。'],
+      equal:   ['……你最好别惹我。', '（沉默地盯着你看了许久）走吧。', '你我互不相干，各走各路。', '（阴笑）你的运气不错，今天我心情好。'],
+      lower:   ['（低头不语，眼神闪烁）', '前辈……有何吩咐？', '（恭敬地退后一步）前辈请。', '（眼中闪过一丝阴鸷）……晚辈告退。'],
     },
   },
   enemy: {
-    higher: ['{Player_Name}！天堂有路你不走，今日拿命来！', '仇人见面分外眼红，今日便了结你！'],
-    equal:   ['你我的账，今日该算算了。', '{Player_Name}，我等这一天很久了。'],
-    lower:   ['（眼神闪躲）你给我等着，此仇不报誓不为人……', '哼……你别得意，总有一天……'],
+    higher: ['{Player_Name}！天堂有路你不走，今日拿命来！', '仇人见面分外眼红，今日便了结你！', '{Player_Name}，你敢出现在我面前？找死！', '我找你很久了，今日你插翅难飞！'],
+    equal:   ['你我的账，今日该算算了。', '{Player_Name}，我等这一天很久了。', '冤家路窄，今日便做个了断！', '又见面了，这次可没人救你。'],
+    lower:   ['（眼神闪躲）你给我等着，此仇不报誓不为人……', '哼……你别得意，总有一天……', '（咬牙切齿）记住今天，我不会忘的。', '你现在强又如何？天道轮回，走着瞧！'],
   },
   friend: {
-    higher: ['{Player_Name}，怎么还是{Player_Realm}？要努力修炼啊。', '老朋友，又见面了，你可要加把劲了。'],
-    equal:   ['哈哈，{Player_Name}！好久不见，别来无恙？', '能再遇到你真好，来，叙叙旧。'],
-    lower:   ['{Player_Name}前辈！晚辈仰慕已久！', '前辈修为精进，晚辈佩服万分。'],
+    higher: ['{Player_Name}，怎么还是{Player_Realm}？要努力修炼啊。', '老朋友，又见面了，你可要加把劲了。', '{Player_Name}，你最近修炼得如何？我可是一直在等你赶上来。', '好久不见！你要多努力，别被我甩太远了。'],
+    equal:   ['哈哈，{Player_Name}！好久不见，别来无恙？', '能再遇到你真好，来，叙叙旧。', '天涯何处不相逢！{Player_Name}，来喝一杯！', '又碰到你了，看来咱们真有缘分。'],
+    lower:   ['{Player_Name}前辈！晚辈仰慕已久！', '前辈修为精进，晚辈佩服万分。', '前辈境界越来越高了，晚辈自愧不如。', '能再次见到前辈，真是荣幸！'],
   },
   soulmate: {
-    higher: ['{Player_Name}……我一直在等你。你要快些变强啊。', '你终于来了，为你准备了些东西。'],
-    equal:   ['{Player_Name}，你我肝胆相照，何须多言。', '有你在身边，这修仙之路便不孤单。'],
-    lower:   ['{Player_Name}前辈，能与您结识是我毕生之幸。', '前辈……'],
+    higher: ['{Player_Name}……我一直在等你。你要快些变强啊。', '你终于来了，为你准备了些东西。', '你一定要平安，我会等你变得更强。', '每次见到你我都很高兴……你要加油啊。'],
+    equal:   ['{Player_Name}，你我肝胆相照，何须多言。', '有你在身边，这修仙之路便不孤单。', '这世间纷扰万千，唯你让我心安。', '能与你并肩修行，是此生最大的幸运。'],
+    lower:   ['{Player_Name}前辈，能与您结识是我毕生之幸。', '前辈……', '仰望前辈的背影，我也想变得更强。', '前辈是我修行路上的明灯。'],
   },
   blood: {
-    higher: ['{Parent_Call}！孩儿定当努力修炼，不负您的期望。', '能见到您太好了，孩儿近日修炼遇到些瓶颈……'],
-    equal:   ['{Parent_Call}，您来了！孩儿这厢有礼了。', '一家人不说两家话，您的事就是孩儿的事。'],
-    lower:   ['{Parent_Call}，孩儿不孝，修为进展缓慢……', '孩儿一定会赶上您的脚步的！'],
+    higher: ['{Parent_Call}！孩儿定当努力修炼，不负您的期望。', '能见到您太好了，孩儿近日修炼遇到些瓶颈……', '孩儿会加倍努力，不让您失望的！', '许久未见，孩儿甚是想念{Parent_Call}。'],
+    equal:   ['{Parent_Call}，您来了！孩儿这厢有礼了。', '一家人不说两家话，您的事就是孩儿的事。', '{Parent_Call}近来可好？孩儿一直挂念您。', '有什么需要孩儿做的，尽管吩咐。'],
+    lower:   ['{Parent_Call}，孩儿不孝，修为进展缓慢……', '孩儿一定会赶上您的脚步的！', '看到{Parent_Call}修为精进，孩儿既高兴又惭愧。', '孩儿还需向{Parent_Call}多多学习。'],
   },
   deadEncounter: [
     '你在路边发现了一具熟悉的遗骸……是{NPC_Name}。{NPC_Sect}弟子，{NPC_Realm}修为，终究还是陨落了。',
     '一阵风吹过，你看到了一块残破的令牌——上面刻着"{NPC_Name}"。故人已去，唯余唏嘘。',
+    '你发现一座简陋的坟冢，石碑上刻着"{NPC_Name}"三字，笔迹潦草……',
+    '地上散落着一柄残破的法器，你依稀认出这是{NPC_Name}的遗物。',
   ],
 };
 
@@ -888,26 +897,32 @@ const REPLIES = {
     { text: '客气寒暄', dialogue: '幸会幸会，在下{Player_Name}。', mod: 5 },
     { text: '冷漠应对', dialogue: '嗯。', mod: 0 },
     { text: '出言挑衅', dialogue: '你算什么东西？', mod: -10 },
+    { text: '拱手抱拳', dialogue: '道友有礼了，后会有期。', mod: 3 },
+    { text: '邀请切磋', dialogue: '道友可愿切磋一二？', mod: -2 },
   ],
   enemy: [
     { text: '以牙还牙', dialogue: '来啊，谁怕谁！', mod: -5 },
     { text: '冷笑不语', dialogue: '（冷笑）不值一提。', mod: 0 },
     { text: '试图和解', dialogue: '冤家宜解不宜结，不如就此罢手。', mod: 10 },
+    { text: '转身离去', dialogue: '懒得跟你废话。', mod: 2 },
   ],
   friend: [
     { text: '热情回应', dialogue: '哈哈，老朋友！', mod: 5 },
     { text: '淡然点头', dialogue: '嗯，别来无恙。', mod: 0 },
     { text: '关心近况', dialogue: '最近修炼可还顺利？', mod: 8 },
+    { text: '分享心得', dialogue: '我最近领悟了些东西，说来你听听？', mod: 6 },
   ],
   soulmate: [
     { text: '深情相对', dialogue: '有你在，便好。', mod: 5 },
     { text: '轻声问候', dialogue: '你来了。', mod: 3 },
     { text: '赠送灵果', dialogue: '这颗灵果是我特意为你寻的。', mod: 10 },
+    { text: '并肩而行', dialogue: '一起走走吧，路上说。', mod: 6 },
   ],
   blood: [
     { text: '慈爱鼓励', dialogue: '好孩子，继续努力修炼。', mod: 5 },
     { text: '严厉教导', dialogue: '修炼之路不可懈怠！', mod: -3 },
     { text: '嘘寒问暖', dialogue: '可有吃饱穿暖？', mod: 8 },
+    { text: '汇报修行', dialogue: '孩儿近来修为有所进境，请{Parent_Call}过目。', mod: 5 },
   ],
 };
 
@@ -916,26 +931,36 @@ const NPC_REPLY_AFTER = {
     '（微微点头）道友客气了。',
     '（没什么反应）哦。',
     '（皱眉）你这人好没礼貌。',
+    '（抱拳还礼）道友也一路平安。',
+    '（若有所思地点头）有道理。',
   ],
   enemy: [
     '哼，别以为我会怕你！',
     '（冷冷地看着你）',
     '……（沉默了一下）也罢。',
+    '你等着，这笔账迟早要算！',
+    '（咬牙）我记住你了。',
   ],
   friend: [
     '哈哈，好久不见了！',
     '嗯嗯，你也一样。',
     '还行，就是最近瓶颈了……唉。',
+    '下次一起去探秘境吧！',
+    '有你这个朋友，真好。',
   ],
   soulmate: [
     '（微笑）你也是。',
     '嗯。（会心一笑）',
     '你……你太好了。（红了脸）',
+    '（温柔地握住你的手）',
+    '只要你在，哪里都好。',
   ],
   blood: [
     '多谢{Parent_Call}！孩儿一定不负所望。',
     '是……孩儿知错了。',
     '孩儿一切都好，请{Parent_Call}放心。',
+    '{Parent_Call}放心，孩儿已经有所感悟了。',
+    '有{Parent_Call}在，孩儿什么都不怕。',
   ],
 };
 
@@ -998,6 +1023,12 @@ const SCENES = [
   '你正辨认地上的脚印时', '你在泉眼旁汲取灵水时', '你研究一块古老石碑时',
   '你在夜色中生火取暖时', '你正翻阅一本残破典籍时', '你沿河而行时',
   '你避入一个隐蔽的山洞时', '你站在十字路口抉择时',
+  '你在雨后的山林间行走时', '你正在辨认一株灵药时', '你在枯井旁歇息时',
+  '你穿过一处石林时', '你在落日余晖中远眺时', '你正查看储物袋时',
+  '你在一处干涸的河床上行走时', '你误入一片荆棘丛时', '你在一座废弃的祭坛旁时',
+  '你站在悬崖绝壁上远望时', '你在雾气弥漫的沼泽中跋涉时',
+  '你在一棵雷击木下避风时', '你沿着山脊向前攀行时',
+  '你在月色下的荒原中独行时', '你在一片灵田废墟中搜索时',
 ];
 
 const NPC_APPEARS = [
@@ -1021,6 +1052,16 @@ const NPC_APPEARS = [
   '拐角处突然现出一人，差点撞在一起。',
   '一人正盘膝打坐，感应到你后睁开了眼。',
   '浓雾中隐约有人影晃动，走近才看清——',
+  '一道身影从山洞中走出，衣衫破旧但眼神明亮。',
+  '空中飞来一只灵鹤，鹤背上坐着一人。',
+  '远处一棵大树上跳下来一人，落地无声。',
+  '一阵清啸声传来，一人持剑而至。',
+  '地面突然裂开，一人从地底破土而出。',
+  '一名修士抱着一叠竹简匆匆走来，险些撞上你。',
+  '水面上缓缓升起一人，踏波而行。',
+  '一阵花瓣飘落，花雨中走出一个身影。',
+  '远处灵光闪烁，一人踏着法阵而来。',
+  '你闻到一股丹香，循味而去，发现一人正在炼丹。',
 ];
 
 const GOOD_OUTCOMES = [
@@ -1039,6 +1080,11 @@ const GOOD_OUTCOMES = [
   { text: '{NPC}邀你共饮灵茶，畅谈修道心得，你心境通明。', effect: 'exp', range: [15, 45] },
   { text: '{NPC}正在炼丹，送你一颗作为见面礼。', effect: 'pill', range: [0, 0] },
   { text: '{NPC}正在猎杀妖兽，你助了一臂之力，对方分你战利品。', effect: 'lingshi', range: [25, 90] },
+  { text: '{NPC}见你根骨清奇，传授你一门呼吸吐纳之法。', effect: 'exp', range: [20, 60] },
+  { text: '{NPC}赠你一张地图，指出附近有灵石矿脉的位置。', effect: 'lingshi', range: [50, 150] },
+  { text: '你替{NPC}护法突破，对方功成后以灵石相谢。', effect: 'lingshi', range: [30, 100] },
+  { text: '{NPC}与你一起发现了一处小灵泉，你们各取了些灵水。', effect: 'hp', range: [20, 50] },
+  { text: '{NPC}正巧有多余的符箓，送了你几张。', effect: 'lingshi', range: [15, 45] },
 ];
 
 const BAD_OUTCOMES = [
@@ -1057,6 +1103,10 @@ const BAD_OUTCOMES = [
   { text: '{NPC}引你去看所谓的"宝物"，实则是一场骗局，灵石被骗。', effect: 'loseLingshi', range: [25, 60] },
   { text: '{NPC}以绝对实力碾压你，夺走了你的部分灵石后扬长而去。', effect: 'loseLingshi', range: [30, 70] },
   { text: '你与{NPC}争夺一株灵药，打斗中两败俱伤。', effect: 'damage', range: [20, 35] },
+  { text: '{NPC}声称要与你交流功法，却趁机窃取了你的灵石。', effect: 'loseLingshi', range: [20, 50] },
+  { text: '你误入{NPC}布下的禁制，灵力受损。', effect: 'damage', range: [15, 35] },
+  { text: '{NPC}挑衅你切磋，你不慎中了暗器。', effect: 'damage', range: [20, 40] },
+  { text: '{NPC}以灵茶款待你，谁知茶中有迷药，你醒来时灵石少了一些。', effect: 'loseLingshi', range: [15, 45] },
 ];
 
 const NEUTRAL_OUTCOMES = [
@@ -1133,6 +1183,56 @@ const RUINS = [
       { text: '带走竹简', result: 'loot_small', msg: '你收起几卷竹简，日后再研究。' },
     ]},
   ]},
+  { name: '传送秘境', steps: [
+    { desc: '一个巨大的传送阵在你面前缓缓亮起，空间扭曲，似乎通往未知之地。', choices: [
+      { text: '踏入传送阵', result: 'pass', msg: '你深吸一口气，走入了传送阵。光芒闪过，你来到了一个奇异空间。' },
+      { text: '绕道而行', result: 'quit', msg: '你不敢贸然踏入，转身离开。' },
+    ]},
+    { desc: '你来到了一个漂浮在虚空中的平台。前方有三扇门：蓝色、红色、金色。', choices: [
+      { text: '蓝色之门（灵气充盈）', result: 'loot_big', msg: '门后是一片灵气海洋，你大口吞吐，修为飞涨！' },
+      { text: '红色之门（杀气弥漫）', result: 'fight_boss', msg: '门后是一头远古妖兽，向你怒吼扑来！' },
+      { text: '金色之门（宝光闪烁）', result: 'loot_treasure', msg: '门后是一间宝库，琳琅满目！你取走了最亮眼的那件。' },
+    ]},
+  ]},
+  { name: '天劫试炼场', steps: [
+    { desc: '一座雷池出现在面前，池中电弧噼啪作响。旁边石碑写道："入池淬体，越深越强。"', choices: [
+      { text: '踏入雷池', result: 'pass', msg: '你咬牙走入雷池，雷电缠身，痛彻心扉！但你感到经脉在被淬炼。' },
+      { text: '取些雷液离开', result: 'loot_small', msg: '你用瓶子收集了些雷液，日后可用于淬炼法器。' },
+    ]},
+    { desc: '雷池深处，一尊石像双目放光，雷电从天而降！', choices: [
+      { text: '硬扛天雷', result: 'loot_big', msg: '你在雷电中屹立不倒，全身筋骨都被淬炼一遍，实力大增！' },
+      { text: '全力防御', result: 'damage', msg: '雷电太强，你勉强防住但仍受了伤。' },
+    ]},
+    { desc: '试炼最后一关：九道天雷同时劈下！', choices: [
+      { text: '以身接雷', result: 'loot_treasure', msg: '你竟然在九雷齐落中领悟了雷属性功法，并获得了雷灵宝！' },
+    ]},
+  ]},
+  { name: '药园遗址', steps: [
+    { desc: '你发现了一处上古药园，虽已荒废，但仍有不少灵药存活。', choices: [
+      { text: '仔细采集', result: 'pass', msg: '你小心翼翼地采集各种灵药。' },
+      { text: '寻找药园主人的遗物', result: 'loot_small', msg: '你在药园角落找到一只储物袋，里面有些灵石。' },
+    ]},
+    { desc: '药园深处，一株散发七彩光芒的灵药引起了你的注意。但旁边盘踞着一条毒蛇。', choices: [
+      { text: '与毒蛇搏斗', result: 'fight', msg: '你与巨蟒展开激战！' },
+      { text: '用灵石引开毒蛇', result: 'pass', msg: '你扔出灵石，趁毒蛇分神时抢到了灵药。' },
+      { text: '只取旁边的普通灵药', result: 'loot_small', msg: '你明智地避开毒蛇，采集了周围的灵药。' },
+    ]},
+    { desc: '你发现药园地下有一间密室，里面摆放着一座完好的炼丹炉。', choices: [
+      { text: '尝试炼丹', result: 'loot_big', msg: '你依照墙上的丹方，成功炼出了几颗丹药！' },
+      { text: '带走炼丹炉', result: 'loot_treasure', msg: '这座炼丹炉本身就是一件宝物！' },
+    ]},
+  ]},
+  { name: '万剑谷', steps: [
+    { desc: '峡谷中插满了各式各样的剑，有些已锈蚀，有些仍锋芒毕露。', choices: [
+      { text: '拔出一柄好剑', result: 'pass', msg: '你选中一柄品相不错的剑，用力拔出。剑身嗡鸣，似乎认主。' },
+      { text: '继续深入', result: 'pass', msg: '你没有急于选择，而是继续向谷底走去。' },
+    ]},
+    { desc: '谷底有一柄通体漆黑的剑插在巨石上，周围形成了一个剑气禁区。', choices: [
+      { text: '闯入禁区拔剑', result: 'fight_boss', msg: '剑气如刀割，你强行闯入！无数剑影向你攻来！' },
+      { text: '在外围领悟剑意', result: 'loot_big', msg: '你盘膝坐在禁区边缘，感悟万剑归宗之意，修为精进！' },
+      { text: '取一柄普通灵剑离去', result: 'loot_treasure', msg: '你选了一柄品质上乘的灵剑，满意而归。' },
+    ]},
+  ]},
 ];
 
 // ========== 工具函数 ==========
@@ -1140,7 +1240,7 @@ const RUINS = [
 function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
 function randPick(arr) { return arr[randInt(0, arr.length - 1)]; }
 function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
-function randName() { return randPick(SURNAMES) + randPick(GIVEN_NAMES); }
+function randName() { return randPick(SURNAMES) + randPick(NAME_CHAR1) + randPick(NAME_CHAR2); }
 function randMonsterName() { return randPick(MONSTER_PREFIX) + randPick(MONSTER_SUFFIX); }
 
 function getRealmFullName(ri, si) { return REALMS[ri].name + REALMS[ri].stages[si]; }
@@ -1624,7 +1724,7 @@ class Game {
     const sectName = this.player.sect ? (getSectById(this.player.sect)||{}).name || '散修' : '散修';
 
     const father = this.generator.createRandomNPC(parentRI, {
-      name: surname + randPick(GIVEN_NAMES), gender: '男',
+      name: surname + randPick(NAME_CHAR1) + randPick(NAME_CHAR2), gender: '男',
       sect: sectName, personality: randPick(['righteous', 'kind', 'righteous']),
       realmIndex: parentRI, stageIndex: parentSI,
     });
@@ -2400,6 +2500,23 @@ class Game {
           this.log(`你发现了悬赏通缉犯<span class="npc-name">${target.name}</span>！`, 'combat');
           target.changeRelation(this.player.id, -40);
           this.resolveCombatWithNPC(target, false);
+        } else if (bt.type === 'escort') {
+          this.log(`你成功将护送目标带到了安全地点！途中遭遇了一波袭击——`, 'combat');
+          this.encounterMonster();
+        } else if (bt.type === 'investigate') {
+          const r = Math.random();
+          if (r < 0.4) {
+            this.log(`你调查了此处异象，发现是一头妖兽在作祟！`, 'combat');
+            this.encounterMonster();
+          } else if (r < 0.7) {
+            const expGain = randInt(20, 60) * Math.max(1, this.player.realmIndex);
+            this.player.exp += expGain;
+            this.log(`你调查了此处异象，发现是一处天然灵脉。你趁机修炼，获得 ${expGain} 经验。`, 'success');
+          } else {
+            const amount = randInt(30, 80);
+            this.player.inventory.lingshi += amount;
+            this.log(`你调查了此处异象，发现了一个废弃的储物袋，获得 ${amount} 灵石。`, 'loot');
+          }
         } else {
           const amount = randInt(20, 60);
           this.player.inventory.lingshi += amount;
@@ -2498,14 +2615,17 @@ class Game {
       this.player.inventory.items.push(t);
       showScenePopup('loot', '获 得 宝 物', 1200);
       this.log(`你发现了一件宝物——<span class="npc-name">${t.name}</span>（战力+${t.power}）！`, 'loot');
-    } else if (roll < 0.68) {
+    } else if (roll < 0.65) {
       this.encounterMonster();
       return;
-    } else if (roll < 0.78) {
+    } else if (roll < 0.73) {
       this.triggerRandomEvent();
       return;
-    } else if (roll < 0.88) {
+    } else if (roll < 0.81) {
       this.encounterCultivator();
+      return;
+    } else if (roll < 0.89) {
+      this.triggerSpecialEvent();
       return;
     } else {
       if (Math.random() < 0.1) {
@@ -2795,6 +2915,119 @@ class Game {
     npc.tempTurns = 3;
     this.placeNpcAtPlayer(npc);
     this.memoryStore.save();
+    this.mapSystem.save();
+    this.updateHeader();
+    this.save();
+    this.showMainActions();
+  }
+
+  triggerSpecialEvent() {
+    const roll = Math.random();
+    const ri = this.player.realmIndex;
+
+    if (roll < 0.18) {
+      const nx = randInt(0, MAP_SIZE - 1), ny = randInt(0, MAP_SIZE - 1);
+      showScenePopup('explore', '传 送 阵', 1500);
+      this.log('你脚下突然亮起古老的符文——一个远古传送阵！', 'system');
+      this.log('还没来得及反应，一股吸力将你卷入虚空……', '');
+      this.mapSystem.playerX = nx;
+      this.mapSystem.playerY = ny;
+      const destCell = this.mapSystem.getCell(nx, ny);
+      const locDesc = destCell.type === 'market' ? '一处坊市' : destCell.type === 'sect' ? '一处宗门驻地' : `灵气${QI_NAMES[destCell.qi]}之地`;
+      this.log(`你被传送到了（${nx+1},${ny+1}），${locDesc}。`, 'success');
+      this.moveFollowers();
+    } else if (roll < 0.30) {
+      showScenePopup('loot', '仙 人 遗 藏', 2000);
+      const expGain = randInt(80, 200) * Math.max(1, ri);
+      const lingshi = randInt(100, 300) * Math.max(1, ri);
+      this.player.exp += expGain;
+      this.player.inventory.lingshi += lingshi;
+      this.trackStat('lingshiEarned', lingshi);
+      this.log('你误入一处隐藏的仙人洞府，府内灵光流转，玉简丹炉俱全。', '');
+      this.log(`你潜心参悟，修为大进！获得 ${expGain} 经验，${lingshi} 灵石！`, 'loot');
+    } else if (roll < 0.40) {
+      showScenePopup('loot', '垂 死 高 人', 2000);
+      const expGain = randInt(120, 300) * Math.max(1, ri);
+      this.player.exp += expGain;
+      this.log('一位垂死的老者靠在石壁上，见到你后微微一笑。', '');
+      this.log(`"有缘人……老夫修行一世，今日将毕生修为传与你……"`, '');
+      this.log(`你获得了高人传功！经验 +${expGain}！`, 'success');
+    } else if (roll < 0.50) {
+      showScenePopup('loot', '天 降 灵 宝', 2000);
+      const tier = Math.min(ri + 2, TREASURES.length - 1);
+      const t = { ...TREASURES[randInt(Math.max(0, tier - 1), tier)] };
+      t.power = Math.floor(t.power * 1.5);
+      this.player.inventory.items.push(t);
+      this.log('天空突然裂开一道缝隙，一道灵光从裂缝中坠落！', '');
+      this.log(`你得到了一件品质卓绝的灵宝——<span class="npc-name">${t.name}</span>（战力+${t.power}）！`, 'loot');
+    } else if (roll < 0.58) {
+      showScenePopup('success', '灵 泉 沐 浴', 1500);
+      this.player.hp = this.player.maxHp;
+      const expGain = randInt(30, 80) * Math.max(1, ri);
+      this.player.exp += expGain;
+      this.log('你发现了一处隐秘的天然灵泉，泉水温润如玉，灵气充盈。', '');
+      this.log(`你在灵泉中沐浴修炼，气血恢复满值，获得 ${expGain} 经验！`, 'success');
+    } else if (roll < 0.66) {
+      showScenePopup('danger', '深 坑 陷 阱', 1500);
+      const dmg = randInt(10, 30);
+      this.player.hp = Math.max(1, this.player.hp - dmg);
+      const lingshi = randInt(50, 150) * Math.max(1, ri);
+      this.player.inventory.lingshi += lingshi;
+      this.trackStat('lingshiEarned', lingshi);
+      this.log('地面突然塌陷，你跌入一个深坑！', 'danger');
+      this.log(`你受到 ${dmg} 点伤害，但在坑底发现了一只储物袋，获得 ${lingshi} 灵石！`, 'loot');
+    } else if (roll < 0.74) {
+      showScenePopup('explore', '游 方 商 人', 1500);
+      const maxR = Math.min(ri + 2, 7);
+      const avail = PILLS.filter(pp => pp.forRealm <= maxR);
+      if (avail.length) {
+        const dp = randPick(avail);
+        this.player.inventory.pills[dp.id] = (this.player.inventory.pills[dp.id] || 0) + 1;
+        this.log('一个神秘的游方商人出现在你面前，背着一个巨大的药箱。', '');
+        this.log(`"有缘人，这颗丹药送你了！"你获得了一颗<span class="npc-name">${dp.name}</span>！`, 'loot');
+      } else {
+        const amount = randInt(30, 80);
+        this.player.inventory.lingshi += amount;
+        this.log('一个神秘商人路过，见你有修仙者气息，赠你灵石表示好感。', 'loot');
+      }
+    } else if (roll < 0.82) {
+      showScenePopup('danger', '雷 劫 降 临', 2000);
+      if (Math.random() < 0.45) {
+        const expGain = randInt(100, 250) * Math.max(1, ri);
+        this.player.exp += expGain;
+        this.log('天空骤然雷云密布，一道天雷劈落！', 'danger');
+        this.log(`你咬牙硬抗天雷，全身经脉被雷电淬炼，大彻大悟！经验 +${expGain}！`, 'success');
+      } else {
+        const dmg = randInt(20, 50);
+        this.player.hp = Math.max(1, this.player.hp - dmg);
+        this.log('天空骤然雷云密布，一道天雷劈落！', 'danger');
+        this.log(`你被天雷击中，浑身焦黑，损失 ${dmg} 点气血。`, 'danger');
+      }
+    } else if (roll < 0.90) {
+      showScenePopup('explore', '废 弃 炼 丹 炉', 1500);
+      const maxR = Math.min(ri + 1, 7);
+      const avail = PILLS.filter(pp => pp.forRealm <= maxR);
+      const count = randInt(1, 3);
+      this.log('你发现一座废弃的炼丹炉，炉内残留着几颗尚未完全冷却的丹药。', '');
+      for (let i = 0; i < count && avail.length; i++) {
+        const dp = randPick(avail);
+        this.player.inventory.pills[dp.id] = (this.player.inventory.pills[dp.id] || 0) + 1;
+        this.log(`获得<span class="npc-name">${dp.name}</span>！`, 'loot');
+      }
+    } else {
+      showScenePopup('explore', '藏 宝 图', 1500);
+      const tx = randInt(0, MAP_SIZE - 1), ty = randInt(0, MAP_SIZE - 1);
+      const cell = this.mapSystem.getCell(tx, ty);
+      if (cell) {
+        const tier = Math.min(ri + 1, TREASURES.length - 1);
+        const t = { ...TREASURES[randInt(Math.max(0, tier - 1), tier)] };
+        if (!cell.loot) cell.loot = [];
+        cell.loot.push(t);
+      }
+      this.log('你在一个石缝中发现了一张泛黄的藏宝图！', '');
+      this.log(`图上标注的位置在（${tx+1},${ty+1}），似乎埋藏着什么宝物……`, 'success');
+    }
+
     this.mapSystem.save();
     this.updateHeader();
     this.save();
@@ -3429,7 +3662,7 @@ class Game {
     const names = [];
     const used = new Set();
     while (names.length < 3) {
-      const n = surname + randPick(GIVEN_NAMES);
+      const n = surname + randPick(NAME_CHAR1) + randPick(NAME_CHAR2);
       if (!used.has(n)) { used.add(n); names.push(n); }
     }
     let html = `<div style="text-align:center;color:var(--pink);font-size:14px;margin-bottom:8px">为${childGender === '男' ? '儿子' : '女儿'}取名</div>`;
@@ -3735,7 +3968,7 @@ class Game {
       if (existingKids >= 2) continue;
       if (Math.random() > 0.1) continue;
       const surname = partner.name[0];
-      const childName = surname + randPick(GIVEN_NAMES);
+      const childName = surname + randPick(NAME_CHAR1) + randPick(NAME_CHAR2);
       const childGender = randPick(['男', '女']);
       const baby = this.generator.createRandomNPC(0, {
         name: childName, gender: childGender,
@@ -5249,8 +5482,8 @@ function renderMarketBounty(body, p) {
 function closeMarket() { document.getElementById('marketModal').classList.remove('show'); }
 
 const BOUNTY_ACTIONS = [
-  { type: 'slay', verbs: ['击退','斩杀','驱逐','消灭'], targets: ['玄铁蛟','噬魂蝠','赤焰狼','幽冥蟒','金翅鹰','紫雷虎','暗影蛛','寒冰熊','妖化野猪','毒雾蝎'] },
-  { type: 'fetch', verbs: ['搜寻','采集','找回','取回'], targets: ['千年灵芝','火焰花','寒冰草','聚灵石','天星藤','玄铁矿','月华露','龙涎草','凤血果','紫云参'] },
+  { type: 'slay', verbs: ['击退','斩杀','驱逐','消灭'], targets: ['玄铁蛟','噬魂蝠','赤焰狼','幽冥蟒','金翅鹰','紫雷虎','暗影蛛','寒冰熊','妖化野猪','毒雾蝎','血翼蝠','铁背龟','九尾妖狐','炎角犀','冰晶蜥','雷鳞蛇','风暴鹫','噬天蚁王','魔猿','鬼面蜘蛛'] },
+  { type: 'fetch', verbs: ['搜寻','采集','找回','取回'], targets: ['千年灵芝','火焰花','寒冰草','聚灵石','天星藤','玄铁矿','月华露','龙涎草','凤血果','紫云参','九曲灵藤','碧霄花','地脉精华','星辰砂','雪莲子','灵泉水','天火石','幽冥铁','太阳精金','月光石'] },
   { type: 'capture', verbs: ['缉拿','捉拿','击败','追捕'], targets: () => {
     const names = []; for(let i=0;i<5;i++) names.push(randName()); return names;
   }},
@@ -5258,6 +5491,8 @@ const BOUNTY_ACTIONS = [
     const alive = game.memoryStore.getAlive();
     return alive.length ? alive.map(n=>n.name) : ['失踪的散修','迷路的弟子','走失的药农'];
   }},
+  { type: 'escort', verbs: ['护送','护卫','保护','押送'], targets: ['药商','灵石矿主的女儿','受伤的长老','传信使者','流亡的宗门弟子','灵兽商人','炼器师','偷渡的散修','逃难的凡人','朝圣者'] },
+  { type: 'investigate', verbs: ['调查','探查','侦察','查明'], targets: ['异常灵气波动','妖兽暴动源头','失踪弟子下落','神秘阵法来源','鬼修出没之地','走私灵石的据点','废弃洞府异象','诡异雾气来源','地下密道','古阵残留'] },
 ];
 
 function refreshBountyBoard() {
@@ -5270,7 +5505,7 @@ function refreshBountyBoard() {
     const targetPool = typeof ba.targets === 'function' ? ba.targets() : ba.targets;
     const target = randPick(targetPool);
     const desc = `${verb}${target}（${x+1},${y+1}）`;
-    const finalReward = ba.type === 'capture' ? Math.floor(reward * 1.5) : reward;
+    const finalReward = ba.type === 'capture' ? Math.floor(reward * 1.5) : ba.type === 'escort' ? Math.floor(reward * 1.3) : ba.type === 'investigate' ? Math.floor(reward * 1.2) : reward;
     board.push({ type: ba.type, desc, x, y, reward: finalReward });
   }
   game.player.bountyBoard = board;
@@ -5284,7 +5519,7 @@ function addOneBounty() {
   const targetPool = typeof ba.targets === 'function' ? ba.targets() : ba.targets;
   const target = randPick(targetPool);
   const desc = `${verb}${target}（${x+1},${y+1}）`;
-  const finalReward = ba.type === 'capture' ? Math.floor(reward * 1.5) : reward;
+  const finalReward = ba.type === 'capture' ? Math.floor(reward * 1.5) : ba.type === 'escort' ? Math.floor(reward * 1.3) : ba.type === 'investigate' ? Math.floor(reward * 1.2) : reward;
   if (!game.player.bountyBoard) game.player.bountyBoard = [];
   game.player.bountyBoard.push({ type: ba.type, desc, x, y, reward: finalReward });
 }
