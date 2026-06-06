@@ -1612,6 +1612,7 @@ class Game {
   }
 
   save() {
+    if (this.isDead) return;
     localStorage.setItem('xiuxian_player', JSON.stringify(this.player));
     this.memoryStore.save();
   }
@@ -1692,6 +1693,28 @@ class Game {
         showScenePopup('success', npc.name + ' 成年', 1800);
         this.log(`你的${npc.gender === '男' ? '儿子' : '女儿'}<span class="npc-name">${npc.name}</span>已经成年！`, 'pink');
         this.placeNpcOnMap(npc); npc.tempTurns = 3;
+      }
+      if (npc.role === 'concubine' && npc.isAlive && !isMaxRealm(npc.realmIndex, npc.stageIndex)) {
+        const maxRI = Math.min(this.player.realmIndex, REALMS.length - 1);
+        if (npc.realmIndex < maxRI || (npc.realmIndex === maxRI && npc.stageIndex < this.player.stageIndex)) {
+          const gain = Math.floor(randInt(5, 25) * (1 + npc.realmIndex * 0.3));
+          npc.exp = Math.min((npc.exp || 0) + gain, REALMS[npc.realmIndex].expPerStage);
+          if (canBreakthrough(npc)) {
+            const r = REALMS[npc.realmIndex];
+            if (Math.random() < r.breakChance) {
+              npc.stageIndex++;
+              npc.exp = 0;
+              if (npc.stageIndex >= r.stages.length) {
+                npc.stageIndex = 0;
+                npc.realmIndex++;
+                npc.lifeMax = REALMS[npc.realmIndex].lifeMax;
+                npc.lifeCurrent += Math.floor(REALMS[npc.realmIndex].lifeMax * 0.4);
+                npc.hpMax = REALMS[npc.realmIndex].hpMax;
+                this.log(`你的侍妾<span class="npc-name">${npc.name}</span>突破至<span class="realm-text">${npc.getRealmName()}</span>！`, 'pink');
+              }
+            }
+          }
+        }
       }
     }
     for (const npc of this.memoryStore.getAlive()) {
@@ -2117,6 +2140,20 @@ class Game {
       p.hp = Math.min(p.hpMax, p.hp + hpGain);
       p.lifeCurrent += randInt(2, 5);
       this.log(`与${npc.name}双修，修为+${expGain}，气血+${hpGain}。`, 'pink');
+      if (!isMaxRealm(npc.realmIndex, npc.stageIndex)) {
+        const npcExp = Math.floor(expGain * 0.6);
+        npc.exp = Math.min((npc.exp || 0) + npcExp, REALMS[npc.realmIndex].expPerStage);
+        if (canBreakthrough(npc) && Math.random() < REALMS[npc.realmIndex].breakChance) {
+          npc.stageIndex++; npc.exp = 0;
+          if (npc.stageIndex >= REALMS[npc.realmIndex].stages.length) {
+            npc.stageIndex = 0; npc.realmIndex++;
+            npc.lifeMax = REALMS[npc.realmIndex].lifeMax;
+            npc.lifeCurrent += Math.floor(REALMS[npc.realmIndex].lifeMax * 0.4);
+            npc.hpMax = REALMS[npc.realmIndex].hpMax;
+          }
+          this.log(`${npc.name}修为精进，突破至<span class="realm-text">${npc.getRealmName()}</span>！`, 'pink');
+        }
+      }
     } else if (cmd.type === 'propose' && !npc.isChild) {
       showScenePopup('dual', '结 为 道 侣', 2000);
       if (!p.bonds) p.bonds = [];
@@ -2203,6 +2240,16 @@ class Game {
       this.inEncounter = true;
       return;
     }
+
+    const encPower = getTotalPower(npc.realmIndex, npc.stageIndex) * 8 + randInt(0, 15);
+    const myPower = getTotalPower(this.player.realmIndex, this.player.stageIndex) * 8 + this.getPlayerTreasurePower();
+    let powerHint = '';
+    if (encPower > myPower * 1.5) powerHint = '<span style="color:var(--red)">（远强于你）</span>';
+    else if (encPower > myPower * 1.1) powerHint = '<span style="color:#e67e22">（略强于你）</span>';
+    else if (encPower > myPower * 0.9) powerHint = '<span style="color:var(--text-dim)">（旗鼓相当）</span>';
+    else if (encPower > myPower * 0.5) powerHint = '<span style="color:var(--blue)">（弱于你）</span>';
+    else powerHint = '<span style="color:var(--green)">（远弱于你）</span>';
+    container.innerHTML = `<div style="color:var(--text-dim);font-size:12px;margin-bottom:6px">对方战力：<span style="color:var(--blue)">${encPower}</span> ${powerHint} · 你的战力：<span style="color:var(--gold)">${myPower}</span></div>`;
 
     let row1 = '<div class="btn-row three">';
     row1 += '<button class="btn" onclick="game.interact(\'spar\')">切磋</button>';
@@ -2477,7 +2524,8 @@ class Game {
     const scene = randPick(SCENES);
     const appear = randPick(NPC_APPEARS);
     this.log(`${scene}${appear}`, '');
-    this.log(`来者是<span class="npc-name">${npc.name}</span>（${npc.gender}）「${npc.sect}」<span class="realm-text">${npc.getRealmName()}</span>`, '');
+    const evPower = getTotalPower(npc.realmIndex, npc.stageIndex) * 8 + randInt(0, 15);
+    this.log(`来者是<span class="npc-name">${npc.name}</span>（${npc.gender}）「${npc.sect}」<span class="realm-text">${npc.getRealmName()}</span> · <span style="color:var(--blue)">战力${evPower}</span>`, '');
 
     const rel = npc.getRelation(this.player.id);
     const p = PERSONALITIES[npc.personality];
@@ -2562,8 +2610,13 @@ class Game {
           },
           () => {
             npc.changeRelation(this.player.id, -10);
-            if (this.player.hp <= 0) { this.die('你身受重伤，气血耗尽，道消身陨……游戏结束。'); }
-            else { this.finishRandomEvent(npc, ev.isOld); }
+            if (this.player.hp <= 0) {
+              this.player.hp = 1;
+              this.showDefeatChoices(npc, ev.isOld, () => {
+                this.finishRandomEvent(npc, ev.isOld);
+                this.showMainActions();
+              });
+            } else { this.finishRandomEvent(npc, ev.isOld); }
           }
         );
         return;
@@ -2747,7 +2800,11 @@ class Game {
         if (lostLingshi > 0) this.log(`丢失 ${lostLingshi} 灵石。`, 'danger');
         npc.changeRelation(this.player.id, -15);
         if (this.player.hp <= 0) {
-          this.die('你身受重伤，气血耗尽，道消身陨……游戏结束。');
+          this.player.hp = 1;
+          this.showDefeatChoices(npc, isOld, () => {
+            this.finishCombatNPC(npc, isOld);
+            this.showMainActions();
+          });
         } else {
           this.finishCombatNPC(npc, isOld);
         }
@@ -2804,6 +2861,106 @@ class Game {
         <button class="btn btn-reply" onclick="game.resolveVictory('interrogate')">逼问</button>
       </div>`;
     this.inEncounter = true;
+  }
+
+  showDefeatChoices(npc, isOld, afterSurvive) {
+    this.pendingDefeat = { npc, isOld, afterSurvive };
+    this.hideAllActions();
+    const container = document.getElementById('dialogueActions');
+    container.classList.remove('hidden');
+    const hasLingshi = this.player.inventory.lingshi > 0;
+    const hasTreasure = (this.player.inventory.items || []).length > 0;
+    const lingshiAmt = Math.floor(this.player.inventory.lingshi * 0.5);
+    let html = `<div style="color:var(--red);font-size:13px;margin-bottom:6px;text-align:center">你败了！${npc.name}手持兵刃指着你……</div>`;
+    html += `<div class="btn-row three">
+      <button class="btn btn-reply" onclick="game.resolveDefeat('beg')">跪地求饶</button>`;
+    if (hasLingshi) {
+      html += `<button class="btn btn-reply" style="color:var(--gold)" onclick="game.resolveDefeat('lingshi')">献上灵石(${fmtPrice(lingshiAmt)})</button>`;
+    }
+    if (hasTreasure) {
+      html += `<button class="btn btn-reply" style="color:var(--blue)" onclick="game.resolveDefeat('treasure')">献上宝物</button>`;
+    }
+    html += `</div>`;
+    container.innerHTML = html;
+    this.inEncounter = true;
+  }
+
+  resolveDefeat(choice) {
+    const d = this.pendingDefeat;
+    if (!d) { this.showMainActions(); return; }
+    const npc = d.npc;
+    this.pendingDefeat = null;
+
+    const p = PERSONALITIES[npc.personality];
+    const rel = npc.getRelation(this.player.id);
+    const cat = getRelationCategory(rel, npc.isChild, npc.id);
+    const realmGap = npc.realmIndex - this.player.realmIndex;
+
+    let mercyChance = 0.35;
+    if (npc.personality === 'kind') mercyChance = 0.7;
+    else if (npc.personality === 'righteous') mercyChance = 0.55;
+    else if (npc.personality === 'greedy') mercyChance = 0.25;
+    else if (npc.personality === 'arrogant') mercyChance = 0.3;
+    else if (npc.personality === 'sinister') mercyChance = 0.12;
+
+    if (cat === 'enemy') mercyChance -= 0.3;
+    if (cat === 'soulmate' || cat === 'blood') mercyChance += 0.4;
+    if (cat === 'friend') mercyChance += 0.2;
+    if (realmGap >= 2) mercyChance += 0.1;
+    if (npc.role === 'concubine') mercyChance += 0.3;
+
+    let costText = '';
+    if (choice === 'beg') {
+      this.log(`你跪倒在地：「前辈饶命！小的有眼无珠，再也不敢了！」`, '');
+    } else if (choice === 'lingshi') {
+      const amt = Math.floor(this.player.inventory.lingshi * 0.5);
+      this.player.inventory.lingshi -= amt;
+      mercyChance += 0.25;
+      if (npc.personality === 'greedy') mercyChance += 0.2;
+      costText = `${fmtPrice(amt)}灵石`;
+      this.log(`你颤抖着双手捧上 ${fmtPrice(amt)} 灵石：「全都给你，只求留我一命！」`, '');
+    } else if (choice === 'treasure') {
+      const items = this.player.inventory.items || [];
+      if (items.length > 0) {
+        const best = items.reduce((a, b) => b.power > a.power ? b : a);
+        this.player.inventory.items = items.filter(t => t !== best);
+        mercyChance += 0.35;
+        if (npc.personality === 'greedy') mercyChance += 0.15;
+        costText = best.name;
+        this.log(`你取出<span class="npc-name">${best.name}</span>恭敬呈上：「此宝献予前辈，但求活命！」`, '');
+      }
+    }
+
+    mercyChance = Math.max(0.05, Math.min(0.95, mercyChance));
+
+    if (Math.random() < mercyChance) {
+      const pn = p.name;
+      let dialogue = '算了，今日便饶你一命，滚吧。';
+      if (npc.personality === 'kind') dialogue = '罢了，冤冤相报何时了，你走吧。';
+      else if (npc.personality === 'righteous') dialogue = '本座不屑杀手无寸铁之人，走吧。';
+      else if (npc.personality === 'greedy') dialogue = costText ? '哼，看在这些东西的份上，饶你一命。' : '穷鬼，没什么油水，走吧。';
+      else if (npc.personality === 'arrogant') dialogue = '你这种蝼蚁，杀了也脏了本座的手。';
+      else if (npc.personality === 'sinister') dialogue = '呵……今日暂且记下，下次可没这么好运。';
+
+      this.log(`<span class="npc-name">${npc.name}</span>：<span class="dialogue">"${dialogue}"</span>`, 'system');
+      this.log(`${npc.name}收起了杀意，放你离去。`, 'success');
+
+      this.player.hp = Math.max(1, Math.floor(this.player.hpMax * 0.1));
+      npc.changeRelation(this.player.id, -10);
+
+      if (d.afterSurvive) d.afterSurvive();
+      else { this.finishCombatNPC(npc, d.isOld); this.showMainActions(); }
+    } else {
+      let dialogue = '求饶？哈哈哈……晚了！';
+      if (npc.personality === 'sinister') dialogue = '呵呵呵……我最喜欢看猎物求饶的样子了。';
+      else if (npc.personality === 'arrogant') dialogue = '蝼蚁就该有蝼蚁的觉悟，去死吧！';
+      else if (cat === 'enemy') dialogue = '你我之间的仇，只有血才能洗清！';
+
+      this.log(`<span class="npc-name">${npc.name}</span>：<span class="dialogue">"${dialogue}"</span>`, 'danger');
+      this.die('你身受重伤，气血耗尽，道消身陨……游戏结束。');
+    }
+    this.updateHeader();
+    this.save();
   }
 
   maybeSendDistress(npc) {
@@ -3111,6 +3268,20 @@ class Game {
       ];
       this.log(randPick(DUAL_SCENES), 'pink');
       this.log(`修为+${expGain}，气血+${hpGain}，寿元+${lifeGain}。`, 'pink');
+      if (!isMaxRealm(npc.realmIndex, npc.stageIndex)) {
+        const npcExpGain = Math.floor(expGain * 0.6);
+        npc.exp = Math.min((npc.exp || 0) + npcExpGain, REALMS[npc.realmIndex].expPerStage);
+        if (canBreakthrough(npc) && Math.random() < REALMS[npc.realmIndex].breakChance) {
+          npc.stageIndex++; npc.exp = 0;
+          if (npc.stageIndex >= REALMS[npc.realmIndex].stages.length) {
+            npc.stageIndex = 0; npc.realmIndex++;
+            npc.lifeMax = REALMS[npc.realmIndex].lifeMax;
+            npc.lifeCurrent += Math.floor(REALMS[npc.realmIndex].lifeMax * 0.4);
+            npc.hpMax = REALMS[npc.realmIndex].hpMax;
+          }
+          this.log(`${npc.name}修为精进，突破至<span class="realm-text">${npc.getRealmName()}</span>！`, 'pink');
+        }
+      }
 
       const nP = getTotalPower(npc.realmIndex, npc.stageIndex);
       const pP = getTotalPower(this.player.realmIndex, this.player.stageIndex);
@@ -3166,7 +3337,12 @@ class Game {
         () => {
           npc.changeRelation(this.player.id, robDelta);
           if (this.player.hp <= 0) {
-            this.die('你身受重伤，气血耗尽，道消身陨……游戏结束。');
+            this.player.hp = 1;
+            this.showDefeatChoices(npc, npc.isPermanent, () => {
+              this.log('抢夺失败！', 'danger');
+              this.finishEncounter(npc);
+              this.showMainActions();
+            });
           } else {
             this.log('抢夺失败！', 'danger');
             this.finishEncounter(npc);
@@ -3262,7 +3438,7 @@ class Game {
 
     const heal = Math.floor(this.player.hpMax * (0.3 + Math.random() * 0.3));
     this.player.hp = Math.min(this.player.hpMax, this.player.hp + heal);
-    this.log(`你原地修整${yearsSpent}年，恢复气血 +${heal}。（${this.player.hp}/${this.player.hpMax}）`, 'success');
+    this.log(`你原地修整一年，恢复气血 +${heal}。（${this.player.hp}/${this.player.hpMax}）`, 'success');
 
     if (Math.random() < 0.3) {
       this.updateHeader(); this.save();
@@ -3814,6 +3990,7 @@ class Game {
       if (!this.player.bonds.includes(npc.id)) this.player.bonds.push(npc.id);
       npc.changeRelation(this.player.id, 25);
       if (pp.type === 'couple') {
+        npc.spouse = '__player__';
         showScenePopup('dual', '结 为 道 侣', 2000);
         this.log(`你点头应允。${npc.name}喜极而泣：「此生有你，无憾矣。」`, 'pink');
         this.log(`【${npc.name}成为你的道侣】`, 'pink');
@@ -4254,7 +4431,8 @@ function toggleNpcActions(npcId) {
   if (rel >= 30) btns += `<button class="btn btn-sm" onclick="npcAction('${npcId}','askHelp')">求助</button>`;
   if (rel >= 60 && !isBond && !isOpp && !npc.isChild) btns += `<button class="btn btn-sm" onclick="npcAction('${npcId}','bond')">请求结拜</button>`;
   if (rel >= 60 && !isBond && isOpp && !npc.isChild) btns += `<button class="btn btn-sm btn-pink" onclick="npcAction('${npcId}','propose')">请求结为道侣</button>`;
-  if (npc.spouse === '__player__' && !npc.isChild) btns += `<button class="btn btn-sm btn-pink" onclick="npcAction('${npcId}','dual')">双修</button>`;
+  const sameCell = npc.mapX === game.mapSystem.playerX && npc.mapY === game.mapSystem.playerY;
+  if (npc.spouse === '__player__' && !npc.isChild && sameCell) btns += `<button class="btn btn-sm btn-pink" onclick="npcAction('${npcId}','dual')">双修</button>`;
   if (rel >= 30) btns += `<button class="btn btn-sm" onclick="npcAction('${npcId}','sendGift')">赠礼</button>`;
   if (rel >= 30 && (game.player.skills||[]).length) btns += `<button class="btn btn-sm" style="border-color:var(--blue);color:var(--blue)" onclick="npcAction('${npcId}','teachSkill')">传授功法</button>`;
   const isMaster = game.player.master === npcId;
@@ -4334,6 +4512,7 @@ function npcAction(npcId, action) {
     if (Math.random() < acceptChance) {
       if (!p.bonds) p.bonds = [];
       p.bonds.push(npc.id);
+      npc.spouse = '__player__';
       npc.changeRelation(p.id, 30);
       game.log(`${npc.name}双颊绯红：「你……你说的是真的吗？我……我愿意。」`, 'pink');
       game.log(`【${npc.name}成为你的道侣】`, 'pink');
@@ -4362,6 +4541,20 @@ function npcAction(npcId, action) {
     ];
     game.log(randPick(REMOTE_DUAL), 'pink');
     game.log(`修为+${expGain}，气血+${hpGain}，寿元+${lifeGain}。`, 'pink');
+    if (!isMaxRealm(npc.realmIndex, npc.stageIndex)) {
+      const npcExp = Math.floor(expGain * 0.6);
+      npc.exp = Math.min((npc.exp || 0) + npcExp, REALMS[npc.realmIndex].expPerStage);
+      if (canBreakthrough(npc) && Math.random() < REALMS[npc.realmIndex].breakChance) {
+        npc.stageIndex++; npc.exp = 0;
+        if (npc.stageIndex >= REALMS[npc.realmIndex].stages.length) {
+          npc.stageIndex = 0; npc.realmIndex++;
+          npc.lifeMax = REALMS[npc.realmIndex].lifeMax;
+          npc.lifeCurrent += Math.floor(REALMS[npc.realmIndex].lifeMax * 0.4);
+          npc.hpMax = REALMS[npc.realmIndex].hpMax;
+        }
+        game.log(`${npc.name}修为精进，突破至<span class="realm-text">${npc.getRealmName()}</span>！`, 'pink');
+      }
+    }
     game.memoryStore.save(); game.updateHeader(); game.save();
     closeMemory();
   } else if (action === 'sendGift') {
@@ -4796,8 +4989,9 @@ function renderMarketPill(body, p) {
   hxBtn.disabled = p.inventory.lingshi < HUIXUE_PILL.price;
   hxBtn.onclick = () => {
     p.inventory.lingshi -= HUIXUE_PILL.price;
-    p.inventory.huixuedan = (p.inventory.huixuedan || 0) + 1;
-    game.log(`购买了<span class="npc-name">${HUIXUE_PILL.name}</span>，花费 ${HUIXUE_PILL.price} 灵石。`, 'loot');
+    const heal = Math.floor(p.hpMax * 0.5);
+    p.hp = Math.min(p.hpMax, p.hp + heal);
+    game.log(`购买并服用<span class="npc-name">${HUIXUE_PILL.name}</span>，恢复气血 +${heal}。（${p.hp}/${p.hpMax}）`, 'success');
     game.updateHeader(); game.save(); showMarket();
   };
   hxDiv.appendChild(hxBtn);
