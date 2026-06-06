@@ -2150,7 +2150,69 @@ class Game {
     this.updateNpcBtn();
   }
 
+  tryRescue() {
+    const ri = this.player.realmIndex;
+    const alive = this.memoryStore.getAlive();
+    const parents = alive.filter(n => n.role === 'parent');
+    const master = this.player.master ? alive.find(n => n.id === this.player.master) : null;
+    const elders = alive.filter(n => n.getRelation(this.player.id) >= 30 && n.realmIndex > ri);
+
+    const rescuers = [];
+    for (const p of parents) rescuers.push({ npc: p, type: 'parent', baseChance: 0.7 });
+    if (master) rescuers.push({ npc: master, type: 'master', baseChance: 0.5 });
+    for (const e of elders) rescuers.push({ npc: e, type: 'elder', baseChance: 0.3 });
+
+    if (!rescuers.length) return false;
+
+    let realmMod = ri <= 1 ? 0.15 : ri <= 2 ? 0.05 : ri <= 3 ? -0.05 : -0.2;
+    const rescueUsed = this.player.rescueCount || 0;
+    const decayMod = -rescueUsed * 0.15;
+
+    for (const r of rescuers) {
+      const chance = Math.max(0.05, r.baseChance + realmMod + decayMod);
+      if (Math.random() < chance) {
+        this.player.hp = Math.floor(this.player.maxHp * 0.3);
+        this.player.rescueCount = rescueUsed + 1;
+        const label = r.type === 'parent' ? (r.npc.gender === '男' ? '父亲' : '母亲') :
+                      r.type === 'master' ? '师父' : '前辈';
+        showScenePopup('success', label + '搭救', 2000);
+        this.log(`就在你命悬一线之际，${label}<span class="npc-name">${r.npc.name}</span>及时赶到，将你救下！`, 'success');
+        this.log(`"${this.getRescueDialogue(r.type, r.npc)}"`, '');
+        this.log(`你捡回一条命，气血恢复至 ${this.player.hp}。`, 'system');
+        this.updateHeader();
+        this.save();
+        this.showMainActions();
+        return true;
+      }
+    }
+    return false;
+  }
+
+  getRescueDialogue(type, npc) {
+    const lines = {
+      parent: [
+        '你这孩子！怎么如此冒失！快服下这颗丹药。',
+        '为父（为娘）感应到你的气息微弱，连夜赶来……以后不许这么莽撞了！',
+        '还好赶到了……你要是出了什么事，我和你父（母）可怎么办？',
+        '不争气的东西！差点白发人送黑发人！给我好好修炼！',
+      ],
+      master: [
+        '为师不是教过你，遇强则避吗？太让我失望了。',
+        '唉，还是太年轻了。好好养伤，修炼才是正途。',
+        '幸好为师在附近巡视，否则后果不堪设想。',
+      ],
+      elder: [
+        '小辈，你的父母与我有旧交。看在他们面上，救你一命。',
+        '你运气不错，今日恰好路过此地。好好珍惜这条命。',
+        '看你资质不错，死了可惜。这颗丹药给你，保命要紧。',
+        '我与你家族有些渊源，权当还个人情吧。',
+      ],
+    };
+    return randPick(lines[type] || lines.elder);
+  }
+
   die(msg) {
+    if (!msg.includes('寿元') && this.tryRescue()) return;
     this.isDead = true;
     clearAllSaves();
     document.getElementById('gameScreen').classList.add('hidden');
