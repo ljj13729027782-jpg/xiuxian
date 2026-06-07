@@ -2171,7 +2171,7 @@ class Game {
     for (const r of rescuers) {
       const chance = Math.max(0.05, r.baseChance + realmMod + decayMod);
       if (Math.random() < chance) {
-        this.player.hp = Math.floor(this.player.maxHp * 0.3);
+        this.player.hp = Math.floor(this.player.hpMax * 0.3);
         this.player.rescueCount = rescueUsed + 1;
         const label = r.type === 'parent' ? (r.npc.gender === '男' ? '父亲' : '母亲') :
                       r.type === 'master' ? '师父' : '前辈';
@@ -3024,7 +3024,7 @@ class Game {
       this.log(`你得到了一件品质卓绝的灵宝——<span class="npc-name">${t.name}</span>（战力+${t.power}）！`, 'loot');
     } else if (roll < 0.58) {
       showScenePopup('success', '灵 泉 沐 浴', 1500);
-      this.player.hp = this.player.maxHp;
+      this.player.hp = this.player.hpMax;
       const expGain = randInt(30, 80) * Math.max(1, ri);
       this.player.exp += expGain;
       this.log('你发现了一处隐秘的天然灵泉，泉水温润如玉，灵气充盈。', '');
@@ -5754,13 +5754,13 @@ function startSectWar() {
 
 function skipSectWar() {
   game.log('你选择按兵不动，未参与此次宗门战。', 'system');
+  game.log('战报传来：你的宗门此战惜败，损失了部分资源。', '');
   game.showMainActions();
 }
 
 function joinSectWar(rivalId) {
-  const rival = getSectById(rivalId);
-  const rounds = randInt(1, 3);
-  game.pendingSectWar = { rivalId, round: 0, total: rounds, wins: 0 };
+  const rounds = randInt(3, 5);
+  game.pendingSectWar = { rivalId, round: 0, total: rounds, wins: 0, allyWins: randInt(1, 2) };
   nextSectWarRound();
 }
 
@@ -5769,12 +5769,37 @@ function nextSectWarRound() {
   if (!sw) { game.showMainActions(); return; }
   sw.round++;
   if (sw.round > sw.total) {
+    const sect = getSectById(game.player.sect);
     const rival = getSectById(sw.rivalId);
-    const reward = sw.wins * randInt(50, 120) * Math.max(1, game.player.realmIndex);
-    const expReward = sw.wins * randInt(30, 80) * (1 + game.player.realmIndex * 0.3);
-    game.player.inventory.lingshi += reward;
-    game.player.exp = Math.min(game.player.exp + Math.floor(expReward), REALMS[game.player.realmIndex].expPerStage);
-    game.log(`宗门战结束！你${sw.total}战${sw.wins}胜，获得 ${reward} 灵石，修为+${Math.floor(expReward)}。`, 'success');
+    const totalAllyWins = sw.wins + sw.allyWins;
+    const totalEnemyWins = sw.total - sw.wins + randInt(0, 1);
+    const weWon = totalAllyWins >= totalEnemyWins;
+
+    game.log(`<span style="color:var(--gold)">═══ 宗门战战报 ═══</span>`, '');
+    game.log(`${sect.name} vs ${rival.name}`, '');
+    game.log(`你的战绩：${sw.total}战<span style="color:var(--green)">${sw.wins}胜</span><span style="color:var(--red)">${sw.total - sw.wins}负</span>`, '');
+    game.log(`综合战果：${sect.name} ${totalAllyWins}胜 — ${rival.name} ${totalEnemyWins}胜`, '');
+
+    if (weWon) {
+      const reward = (sw.wins * randInt(80, 150) + randInt(100, 300)) * Math.max(1, game.player.realmIndex);
+      const expReward = Math.floor(sw.wins * randInt(50, 100) * (1 + game.player.realmIndex * 0.3));
+      game.player.inventory.lingshi += reward;
+      game.player.exp += expReward;
+      game.log(`<span style="color:var(--green);font-weight:bold">【${sect.name}大胜！】</span>`, '');
+      game.log(`${rival.name}落败，赔偿大量资源。你获得 ${reward} 灵石，修为+${expReward}。`, 'success');
+      if (sw.wins >= sw.total) {
+        const bonus = randInt(100, 300) * game.player.realmIndex;
+        game.player.inventory.lingshi += bonus;
+        game.log(`你全胜立下首功，宗门额外奖赏 ${bonus} 灵石！`, 'loot');
+      }
+    } else {
+      const loss = randInt(20, 60) * Math.max(1, game.player.realmIndex);
+      game.player.inventory.lingshi = Math.max(0, game.player.inventory.lingshi - loss);
+      const expReward = Math.floor(sw.wins * randInt(20, 50) * (1 + game.player.realmIndex * 0.3));
+      game.player.exp += expReward;
+      game.log(`<span style="color:var(--red);font-weight:bold">【${sect.name}惜败】</span>`, '');
+      game.log(`${rival.name}获胜，${sect.name}割让资源赔偿。你损失了 ${loss} 灵石，但仍获得修为+${expReward}。`, 'danger');
+    }
     game.pendingSectWar = null;
     game.updateHeader(); game.save();
     game.showMainActions();
@@ -5820,13 +5845,26 @@ function startSectTournament() {
 }
 
 function skipTournament() {
+  const champion = randName();
+  const champSect = randPick(SECTS);
   game.log('你选择在一旁观战，未参加此次大比。', 'system');
+  game.log(`最终${champSect.name}弟子<span class="npc-name">${champion}</span>力压群雄夺得冠军。`, '');
   game.showMainActions();
 }
 
 function joinTournament() {
-  const totalRounds = randInt(3, 5);
-  game.pendingTournament = { round: 0, total: totalRounds, wins: 0 };
+  const totalRounds = 5;
+  const participants = [];
+  const otherSects = SECTS.filter(s => s.id !== game.player.sect);
+  for (let i = 0; i < totalRounds; i++) {
+    const eSect = randPick(otherSects);
+    const diff = i;
+    const eRI = Math.min(game.player.realmIndex + Math.floor(diff / 2), REALMS.length - 1);
+    const eSI = Math.min(randInt(0, 2) + diff, REALMS[eRI].stages.length - 1);
+    participants.push({ name: randName(), sect: eSect.name, ri: eRI, si: eSI });
+  }
+  game.pendingTournament = { round: 0, total: totalRounds, wins: 0, participants, defeated: [] };
+  game.log(`本次大比共 ${totalRounds + 1} 名选手（含你）参与淘汰赛，败者即止。`, 'system');
   nextTournamentRound();
 }
 
@@ -5834,58 +5872,111 @@ function nextTournamentRound() {
   const t = game.pendingTournament;
   if (!t) { game.showMainActions(); return; }
   t.round++;
+
   if (t.round > t.total) {
-    const reward = t.wins * randInt(80, 200) * Math.max(1, game.player.realmIndex);
-    const expReward = t.wins * randInt(50, 120) * (1 + game.player.realmIndex * 0.3);
-    game.player.inventory.lingshi += reward;
-    game.player.exp = Math.min(game.player.exp + Math.floor(expReward), REALMS[game.player.realmIndex].expPerStage);
-    game.log(`大比结束！你${t.total}战${t.wins}胜！获得 ${reward} 灵石，修为+${Math.floor(expReward)}。`, 'success');
-    if (t.wins >= t.total) {
-      const tier = Math.min(game.player.realmIndex + 1, TREASURES.length - 1);
-      const prize = { ...TREASURES[randInt(Math.max(0, tier - 1), tier)] };
-      game.player.inventory.items.push(prize);
-      game.log(`全胜夺魁！获得奖品<span class="npc-name">${prize.name}</span>（战力+${prize.power}）！`, 'loot');
-      const maxG = Math.min(game.player.realmIndex + 2, 4);
-      const avail = SKILLS.filter(s => SKILL_GRADES[s.grade] <= maxG && !(game.player.skills||[]).includes(s.id));
-      if (avail.length) {
-        const sk = randPick(avail);
-        if (!game.player.skills) game.player.skills = [];
-        game.player.skills.push(sk.id);
-        game.log(`大比冠军奖励功法<span class="npc-name">「${sk.name}」</span>！`, 'loot');
-      }
-    }
-    game.pendingTournament = null;
-    game.updateHeader(); game.save();
-    game.showMainActions();
+    finishTournament(true);
     return;
   }
-  const otherSects = SECTS.filter(s => s.id !== game.player.sect);
-  const eSect = randPick(otherSects);
+  const opp = t.participants[t.round - 1];
+  game.log(`<span style="color:var(--gold)">第${t.round}/${t.total}场（${t.round <= 2 ? '淘汰赛' : t.round <= 4 ? '半决赛' : '决赛'}）</span>`, '');
+  game.log(`对手：${opp.sect}弟子<span class="npc-name">${opp.name}</span>（<span class="realm-text">${getRealmFullName(opp.ri, opp.si)}</span>）`, 'combat');
   const diff = t.round - 1;
-  const eRI = Math.min(game.player.realmIndex + Math.floor(diff / 2), REALMS.length - 1);
-  const eSI = Math.min(randInt(0, 2) + diff, REALMS[eRI].stages.length - 1);
-  const eName = randName();
-  game.log(`第${t.round}/${t.total}场：${eSect.name}弟子<span class="npc-name">${eName}</span>（<span class="realm-text">${getRealmFullName(eRI, eSI)}</span>）登台！`, 'combat');
-  game.startCombat(eName, eRI, eSI, randInt(3, 15) + diff * 5,
+  game.startCombat(opp.name, opp.ri, opp.si, randInt(3, 15) + diff * 5,
     () => {
       t.wins++;
-      game.log(`你击败了${eName}！观众席传来阵阵叫好声。`, 'success');
+      t.defeated.push(opp.name);
+      const cheers = ['观众席爆发出热烈的欢呼！', '全场沸腾！', '你的同门兴奋地高呼你的名字！', '裁判宣布你胜出！', '对手抱拳认输。'];
+      game.log(`你击败了${opp.name}！${randPick(cheers)}`, 'success');
       nextTournamentRound();
     },
     () => {
       game.player.hp = Math.max(Math.floor(game.player.hpMax * 0.3), game.player.hp);
-      game.log(`你不敌${eName}，遗憾落败。`, 'danger');
-      game.log(`大比结束！你止步第${t.round}轮，${t.round}战${t.wins}胜。`, 'system');
-      const reward = t.wins * randInt(80, 200) * Math.max(1, game.player.realmIndex);
-      if (reward > 0) {
-        game.player.inventory.lingshi += reward;
-        game.log(`获得奖励 ${reward} 灵石。`, 'loot');
-      }
-      game.pendingTournament = null;
-      game.updateHeader(); game.save();
-      game.showMainActions();
+      game.log(`你不敌${opp.name}，遗憾落败。`, 'danger');
+      finishTournament(false);
     }
   );
+}
+
+function finishTournament(champion) {
+  const t = game.pendingTournament;
+  const sect = getSectById(game.player.sect);
+  const ri = game.player.realmIndex;
+  const totalFighters = t.total + 1;
+
+  let rank, rankName;
+  if (champion) { rank = 1; rankName = '冠军'; }
+  else if (t.wins >= 4) { rank = 2; rankName = '亚军'; }
+  else if (t.wins >= 3) { rank = 3; rankName = '季军'; }
+  else if (t.wins >= 2) { rank = 4; rankName = '第四名'; }
+  else if (t.wins >= 1) { rank = 5; rankName = '八强'; }
+  else { rank = 6; rankName = '首轮淘汰'; }
+
+  game.log(`<span style="color:var(--gold)">═══ 宗门大比战报 ═══</span>`, '');
+  game.log(`你的战绩：${t.round > t.total ? t.total : t.round}战${t.wins}胜，名次：<span style="color:var(--gold);font-weight:bold">${rankName}</span>`, '');
+
+  if (champion) {
+    const fakeChamp2 = t.participants[t.total - 2];
+    game.log(`亚军：${fakeChamp2 ? fakeChamp2.sect + '·' + fakeChamp2.name : randName()}`, '');
+  } else {
+    const champName = t.participants[t.round - 1].name;
+    const champSect = t.participants[t.round - 1].sect;
+    game.log(`最终冠军：${champSect}·<span class="npc-name">${champName}</span>（击败你后一路获胜）`, '');
+  }
+
+  game.log(`<span style="color:var(--text-dim)">——— 排名奖励 ———</span>`, '');
+  const baseReward = randInt(80, 150) * Math.max(1, ri);
+  let lingshi = 0, expGain = 0;
+
+  if (rank === 1) {
+    lingshi = baseReward * 5;
+    expGain = Math.floor(randInt(150, 300) * (1 + ri * 0.3));
+    game.player.inventory.lingshi += lingshi;
+    game.player.exp += expGain;
+    game.log(`冠军奖励：${lingshi} 灵石，修为+${expGain}`, 'loot');
+    const tier = Math.min(ri + 2, TREASURES.length - 1);
+    const prize = { ...TREASURES[randInt(Math.max(0, tier - 1), tier)] };
+    prize.power = Math.floor(prize.power * 1.3);
+    game.player.inventory.items.push(prize);
+    game.log(`冠军宝物：<span class="npc-name">${prize.name}</span>（战力+${prize.power}）`, 'loot');
+    const maxG = Math.min(ri + 2, 4);
+    const avail = SKILLS.filter(s => SKILL_GRADES[s.grade] <= maxG && !(game.player.skills||[]).includes(s.id));
+    if (avail.length) {
+      const sk = randPick(avail);
+      if (!game.player.skills) game.player.skills = [];
+      game.player.skills.push(sk.id);
+      game.log(`冠军功法：<span class="npc-name">「${sk.name}」</span>`, 'loot');
+    }
+  } else if (rank === 2) {
+    lingshi = baseReward * 3;
+    expGain = Math.floor(randInt(100, 200) * (1 + ri * 0.3));
+    game.player.inventory.lingshi += lingshi;
+    game.player.exp += expGain;
+    game.log(`亚军奖励：${lingshi} 灵石，修为+${expGain}`, 'loot');
+    const tier = Math.min(ri + 1, TREASURES.length - 1);
+    const prize = { ...TREASURES[randInt(Math.max(0, tier - 1), tier)] };
+    game.player.inventory.items.push(prize);
+    game.log(`亚军宝物：<span class="npc-name">${prize.name}</span>（战力+${prize.power}）`, 'loot');
+  } else if (rank === 3) {
+    lingshi = baseReward * 2;
+    expGain = Math.floor(randInt(60, 130) * (1 + ri * 0.3));
+    game.player.inventory.lingshi += lingshi;
+    game.player.exp += expGain;
+    game.log(`季军奖励：${lingshi} 灵石，修为+${expGain}`, 'loot');
+  } else if (rank <= 5) {
+    lingshi = baseReward;
+    expGain = Math.floor(randInt(30, 80) * (1 + ri * 0.3));
+    game.player.inventory.lingshi += lingshi;
+    game.player.exp += expGain;
+    game.log(`${rankName}奖励：${lingshi} 灵石，修为+${expGain}`, 'loot');
+  } else {
+    expGain = Math.floor(randInt(10, 30) * (1 + ri * 0.3));
+    game.player.exp += expGain;
+    game.log(`参与奖：修为+${expGain}（重在参与）`, '');
+  }
+
+  game.pendingTournament = null;
+  game.updateHeader(); game.save();
+  game.showMainActions();
 }
 
 // ===== 背包 =====
