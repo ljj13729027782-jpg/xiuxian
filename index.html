@@ -1430,7 +1430,7 @@ class DialogueEngine {
       .replace(/\{NPC_Name\}/g, npc.name)
       .replace(/\{NPC_Sect\}/g, npc.sect)
       .replace(/\{NPC_Realm\}/g, npc.getRealmName())
-      .replace(/\{Parent_Call\}/g, player.gender === '男' ? '父亲' : '母亲');
+      .replace(/\{Parent_Call\}/g, npc.gender === '男' ? '父亲' : '母亲');
   }
 
   getDialogue(npc, player) {
