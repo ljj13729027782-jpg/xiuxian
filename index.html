@@ -1365,11 +1365,14 @@ class NPC {
     this.spouse = d.spouse || null;
     this.masterNpcId = d.masterNpcId || null;
     this.role = d.role || null;
+    // 旧存档没有此字段时自动补为空数组，最多保留最近八条关键往事。
+    this.memories = Array.isArray(d.memories) ? d.memories.slice(-8) : [];
   }
   getRealmName() { return getRealmFullName(this.realmIndex, this.stageIndex); }
   get isMinor() { return this.age !== null && this.age < 20; }
   getRelation(id) { return this.relations[id] || 0; }
   changeRelation(id, d) { this.relations[id] = (this.relations[id] || 0) + d; }
+  getRecentMemory() { return this.memories[this.memories.length - 1] || ''; }
 }
 
 // ========== 生成器 ==========
@@ -1445,7 +1448,11 @@ class DialogueEngine {
       pool = DIALOGUES[cat][diff];
     }
     if (!pool || !pool.length) return '……';
-    return this.replaceVars(randPick(pool), npc, player);
+    const dialogue = this.replaceVars(randPick(pool), npc, player);
+    const memory = npc.getRecentMemory();
+    // 老相识偶尔会主动提起最近的往事，让关系不只是一个数值。
+    if (memory && npc.isPermanent && Math.random() < 0.45) return `${memory}……${dialogue}`;
+    return dialogue;
   }
 
   getDeadEncounter(npc) {
@@ -1767,6 +1774,14 @@ class Game {
   trackStat(key, val) {
     if (!this.player.stats) this.player.stats = {};
     this.player.stats[key] = (this.player.stats[key] || 0) + (val || 1);
+  }
+
+  rememberNpc(npc, text) {
+    if (!npc || !text) return;
+    if (!Array.isArray(npc.memories)) npc.memories = [];
+    if (npc.memories[npc.memories.length - 1] === text) return;
+    npc.memories.push(text);
+    if (npc.memories.length > 8) npc.memories.splice(0, npc.memories.length - 8);
   }
 
   updatePeakRealm() {
@@ -2397,6 +2412,9 @@ class Game {
     this.log(`你：<span class="dialogue">"${playerDialogue}"</span>`, 'player-speech');
 
     npc.changeRelation(this.player.id, opt.mod);
+    if (Math.abs(opt.mod) >= 8) {
+      this.rememberNpc(npc, opt.mod > 0 ? `你曾对我说过「${opt.text}」` : `你曾以「${opt.text}」令我不快`);
+    }
 
     const rel = npc.getRelation(this.player.id);
     const cat = getRelationCategory(rel, npc.isChild, npc.id);
@@ -3118,7 +3136,11 @@ class Game {
     const npcPower = getTotalPower(npc.realmIndex, npc.stageIndex) * 8 + randInt(0, 15);
     let intro = `你遇到了<span class="npc-name">${npc.name}</span> (${npc.gender})`;
     intro += `<br>「${npc.sect}」· <span class="realm-text">${npc.getRealmName()}</span> · 性情${pName} · <span style="color:var(--blue)">战力${npcPower}</span>`;
-    if (isOld) intro += `<br>（旧识 · ${relLabel}）`;
+    if (isOld) {
+      intro += `<br>（旧识 · ${relLabel}）`;
+      const memory = npc.getRecentMemory();
+      if (memory) intro += `<br><span style="color:var(--text-dim);font-size:12px">旧事：${memory}</span>`;
+    }
     this.log(intro);
 
     const p = PERSONALITIES[npc.personality];
@@ -3146,6 +3168,7 @@ class Game {
       () => {
         this.trackStat('kills');
         npc.changeRelation(this.player.id, -30);
+        this.rememberNpc(npc, '你曾在交锋中将我击败');
         this.pendingVictim = { npc, isOld };
         this.showVictoryChoices(npc);
       },
@@ -3154,6 +3177,7 @@ class Game {
         this.player.inventory.lingshi = Math.max(0, this.player.inventory.lingshi - lostLingshi);
         if (lostLingshi > 0) this.log(`丢失 ${lostLingshi} 灵石。`, 'danger');
         npc.changeRelation(this.player.id, -15);
+        this.rememberNpc(npc, '你曾败在我手下，狼狈而退');
         if (this.player.hp <= 0) {
           this.player.hp = 1;
           this.showDefeatChoices(npc, isOld, () => {
@@ -3336,6 +3360,7 @@ class Game {
     if (choice === 'release') {
       this.pendingVictim = null;
       npc.changeRelation(this.player.id, 15);
+      this.rememberNpc(npc, '你曾在胜负已分时放我离去');
       this.log(`你放${npc.name}离去。对方抱拳：「多谢不杀之恩。」好感+15`, '');
       this.finishCombatNPC(npc, v.isOld);
       return;
@@ -3455,6 +3480,7 @@ class Game {
         }
       }
       npc.changeRelation(this.player.id, -15);
+      this.rememberNpc(npc, '你曾夺走我的储物袋');
       this.player.infamy = (this.player.infamy || 0) + 10;
       this.finishCombatNPC(npc, v.isOld);
       return;
@@ -3664,11 +3690,13 @@ class Game {
       this.startCombat(npc.name, npc.realmIndex, npc.stageIndex, randInt(0, 10),
         () => {
           npc.changeRelation(this.player.id, randInt(5, 15) + p.sparMod);
+          this.rememberNpc(npc, '你我曾有一场酣畅淋漓的切磋');
           this.log(`切磋结束，你略胜一筹。好感度提升。`, 'success');
           this.finishEncounter(npc);
         },
         () => {
           npc.changeRelation(this.player.id, randInt(3, 8));
+          this.rememberNpc(npc, '你我曾在切磋中分出高下');
           this.log(`切磋结束，对方更胜一筹，但你受益匪浅。`, '');
           this.player.hp = Math.max(1, this.player.hp);
           this.finishEncounter(npc);
@@ -3678,6 +3706,7 @@ class Game {
     } else if (action === 'gift') {
       delta = randInt(10, 25) + p.giftMod;
       resultText = `你向${npc.name}赠送了一份薄礼。`;
+      this.rememberNpc(npc, '你曾赠我一份薄礼');
       if (p.name === '唯利') resultText += '对方两眼放光。';
     } else if (action === 'rob') {
       this.log(`你试图抢夺${npc.name}的资源！`, 'combat');
@@ -3686,11 +3715,13 @@ class Game {
         () => {
           this.trackStat('kills');
           npc.changeRelation(this.player.id, robDelta);
+          this.rememberNpc(npc, '你曾试图抢夺我的资源，并将我击败');
           this.pendingVictim = { npc, isOld: npc.isPermanent };
           this.showVictoryChoices(npc);
         },
         () => {
           npc.changeRelation(this.player.id, robDelta);
+          this.rememberNpc(npc, '你曾试图抢夺我的资源，却败在我手下');
           if (this.player.hp <= 0) {
             this.player.hp = 1;
             this.showDefeatChoices(npc, npc.isPermanent, () => {
@@ -6454,6 +6485,7 @@ async function aiChat(npc, playerMessage) {
 对方境界：${getRealmFullName(p.realmIndex, p.stageIndex)}
 对方宗门：${p.sect ? (getSectById(p.sect)||{}).name || '散修' : '散修'}
 你们的关系：${relationship}（好感度：${rel}）
+最近往事：${npc.getRecentMemory() || '尚无特别的共同经历'}
 ${p.master && npc.masterNpcId === p.master ? '你们同拜一位师父，是真正的同门师兄弟姐妹。' : p.sect && npc.sect === (getSectById(p.sect)||{}).name ? '你们虽在同一宗门，但并非同门师兄弟（没有共同师父）。不要称呼对方师兄/师弟/师姐/师妹。' : ''}
 对方灵石：${p.inventory.lingshi}
 
