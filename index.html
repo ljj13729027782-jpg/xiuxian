@@ -2206,6 +2206,166 @@ body::before {
   font-weight:700;
   line-height:1.1;
 }
+
+/* 最终响应式结构：角色信息单行、年份作为记录标题、记录区优先占高。 */
+#gameScreen .header {
+  min-height:0;
+  padding-bottom:6px;
+  border-bottom:0;
+}
+#gameScreen .header .character-card {
+  height:82px;
+  grid-template-columns:minmax(150px,1.25fr) minmax(260px,2.15fr);
+  grid-template-rows:1fr;
+  grid-template-areas:"identity stats";
+  gap:7px;
+}
+#gameScreen .header .character-card-head {
+  grid-area:identity;
+  min-width:0;
+}
+#gameScreen .header .character-stats {
+  grid-area:stats;
+  min-width:0;
+  display:grid;
+  grid-template-columns:.68fr .82fr .82fr 1.48fr;
+  gap:4px;
+}
+#gameScreen .header .character-life {
+  grid-area:auto;
+  min-width:0;
+  height:auto;
+  padding:2px 4px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:1px;
+  border:1px solid rgba(113,139,111,.42);
+  background:rgba(30,47,39,.55);
+}
+#gameScreen .header .character-life > span,
+#gameScreen .header .character-life > small {
+  color:#a9aa91;
+  font-size:8px;
+  line-height:1;
+}
+#gameScreen .header .character-life > strong {
+  font-size:14px;
+  line-height:1.1;
+}
+#gameScreen .header .bars-wrap { margin-top:4px; }
+.log-title { display:none; }
+.world-year-bar {
+  flex:0 0 36px;
+  min-height:36px;
+  padding:7px 0;
+}
+#gameScreen .log-area {
+  flex:1 1 170px;
+  height:auto;
+  min-height:120px;
+  max-height:none;
+  margin-top:0;
+}
+.activity-panel { margin-top:2px; }
+
+@media (max-width:600px) {
+  #gameScreen .header {
+    flex:0 0 auto;
+    min-height:0;
+    padding:5px 10px 5px;
+  }
+  #gameScreen .header h1 {
+    height:44px;
+    margin:0 0 3px;
+    font-size:29px;
+    line-height:44px;
+  }
+  #gameScreen .header .character-card {
+    width:100%;
+    height:78px;
+    padding:6px;
+    border-width:6px;
+    grid-template-columns:minmax(118px,1.15fr) minmax(0,2fr);
+    gap:4px;
+  }
+  #gameScreen .header .character-card-head {
+    gap:6px;
+    padding-right:5px;
+  }
+  #gameScreen .header .character-avatar {
+    width:44px;
+    height:44px;
+    flex-basis:44px;
+    background-size:auto 178px;
+    background-position:-75px -30px;
+  }
+  #gameScreen .header .character-name { font-size:14px; }
+  #gameScreen .header .character-origin { margin-top:1px; font-size:8px; }
+  #gameScreen .header .character-realm { margin-top:2px; font-size:9px; }
+  #gameScreen .header .character-stats {
+    grid-template-columns:.68fr .8fr .8fr 1.42fr;
+    gap:3px;
+  }
+  #gameScreen .header .character-stat {
+    min-width:0;
+    padding:2px 3px;
+    flex-direction:column;
+    gap:1px;
+    overflow:hidden;
+  }
+  #gameScreen .header .character-stat svg { display:none; }
+  #gameScreen .header .character-stat-copy {
+    min-width:0;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+  }
+  #gameScreen .header .character-stat-copy small,
+  #gameScreen .header .character-life > span,
+  #gameScreen .header .character-life > small { font-size:8px; }
+  #gameScreen .header .character-stat strong,
+  #gameScreen .header .character-life > strong { font-size:10px; }
+  #gameScreen .header .character-position #posQi {
+    display:block;
+    max-width:72px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  #gameScreen .header #playerFollowers,
+  #gameScreen .header #playerInfamy { font-size:8px; }
+  #gameScreen .bars-wrap { height:auto; margin-top:3px; gap:3px; }
+  #gameScreen .progress-bar { height:15px; }
+  #gameScreen .header .menu-btn { top:11px; right:8px; }
+  .activity-panel {
+    flex:0 0 clamp(205px,28vh,250px);
+    height:clamp(205px,28vh,250px);
+    min-height:205px;
+    max-height:250px;
+    margin:2px 6px 0;
+  }
+  .world-year-bar {
+    flex-basis:34px;
+    min-height:34px;
+    padding:6px 0;
+    font-size:12px;
+  }
+  #gameScreen .log-area {
+    flex:1 1 180px;
+    min-height:130px;
+    max-height:none;
+    margin:0 8px;
+    padding:10px 12px 12px;
+    gap:6px;
+  }
+  #gameScreen .log-entry {
+    min-height:36px;
+    padding:6px 9px;
+    font-size:11px;
+    line-height:1.45;
+  }
+}
 </style>
 </head>
 <body>
@@ -2246,8 +2406,10 @@ body::before {
           <div class="character-realm" id="playerRealm"></div>
         </div>
       </div>
-      <div class="character-life"><span>寿元</span><strong id="playerLife">0</strong><small>年</small></div>
       <div class="character-stats">
+        <div class="character-stat character-life" title="寿元">
+          <span>寿元</span><strong id="playerLife">0</strong><small>年</small>
+        </div>
         <div class="character-stat" title="灵石">
           <svg viewBox="0 0 24 24" aria-hidden="true" shape-rendering="crispEdges"><path d="M9 2h7v3h3v8h-2v4h-3v3H8v-3H5V9h2V5h2V2Zm1 4v9h3v-2h2V7h-2V6h-3Z"/></svg>
           <span class="character-stat-copy"><small>灵石</small><strong id="playerLingshi">0</strong></span>
@@ -2297,12 +2459,10 @@ body::before {
       <span id="activityTitle">初入仙途</span><span id="activitySubtitle">静观天地，择路而行</span><span id="activityPeriod">第 1 / 1 年</span><span id="activityTime">修仙历 1 年</span><span id="activityGain">状态安稳</span><i id="activityProgress"></i><button id="activityStop" type="button" onclick="game.setActivity('idle')">结束行动</button>
     </div>
   </section>
-  <div class="log-title">历 练 记 录</div>
-  <div id="logArea" class="log-area"></div>
-
   <div class="world-year-bar">
     修仙历 <span id="worldYear">1</span> 年
   </div>
+  <div id="logArea" class="log-area"></div>
   <div class="actions">
     <div id="mainActions">
       <div class="btn-row">
