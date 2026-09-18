@@ -127,7 +127,14 @@ body {
 .log-entry.combat { border-left-color: #e67e22; }
 .log-entry.loot { border-left-color: var(--purple); color: var(--purple); }
 .log-entry.player-speech { border-left-color: var(--gold); background: #1e2a45; }
-.log-entry .npc-name { color: var(--gold); font-weight: bold; }
+.log-entry .npc-name, .log-entry .player-name {
+  font-weight: bold;
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+.log-entry .npc-name { color: var(--gold); text-decoration-color: var(--gold-dim); }
+.log-entry .player-name { color: #7dd3fc; text-decoration-color: #3b82f6; }
 .log-entry .dialogue { color: #fff; font-style: italic; }
 .log-entry .realm-text { color: var(--blue); }
 
@@ -168,6 +175,175 @@ body {
   font-size: 13px; padding: 10px 8px; text-align: left; line-height: 1.4;
 }
 .btn.btn-sm { padding: 8px 6px; font-size: 13px; min-height: 36px; }
+
+/* ===== 像素风主界面 / 当前行动 ===== */
+body::before { content:''; position:fixed; inset:0; z-index:-1; background:linear-gradient(180deg,rgba(8,22,42,.18),rgba(6,15,31,.86)),radial-gradient(circle at 50% -10%,rgba(66,177,211,.12),transparent 42%),#071426; }
+#gameScreen { background:linear-gradient(180deg,#0a1c33 0%,#071426 100%); }
+#gameScreen .header { background:linear-gradient(180deg,#0b2039,#08172b); border-bottom:2px solid #8b6a31; box-shadow:0 4px 18px rgba(0,0,0,.35); }
+#gameScreen .header h1 { font-weight:700; text-shadow:2px 2px 0 #513a16,0 0 12px rgba(212,168,83,.3); }
+#gameScreen .progress-bar { border:1px solid rgba(160,125,58,.72); border-radius:2px; }
+.activity-panel { --activity-scene-bg:url('assets/activity-meditate-bg-v2.png'); flex-shrink:0; margin:10px 12px 0; min-height:176px; position:relative; overflow:hidden; border:1px solid #a07d3a; border-radius:5px; background-color:#071426; background-image:var(--activity-scene-bg); background-position:center; background-size:cover; background-repeat:no-repeat; box-shadow:inset 0 0 0 2px rgba(5,15,30,.82),0 5px 18px rgba(0,0,0,.32); image-rendering:pixelated; }
+.activity-panel::after { content:''; position:absolute; inset:0; background:linear-gradient(90deg,transparent 18%,rgba(5,15,29,.2) 47%,rgba(5,15,29,.93) 100%); pointer-events:none; }
+.activity-scene-label { position:absolute; left:10px; top:10px; z-index:1; padding:3px 9px; color:#bceeff; background:rgba(4,18,34,.78); border-left:2px solid #5dade2; font-size:11px; letter-spacing:2px; }
+.activity-card { position:absolute; z-index:2; right:10px; top:12px; bottom:12px; width:48%; padding:10px; display:flex; flex-direction:column; justify-content:center; background:rgba(5,18,34,.86); border:1px solid rgba(160,125,58,.8); box-shadow:inset 0 0 14px rgba(34,123,160,.1); }
+.activity-kicker { color:var(--gold); font-size:10px; letter-spacing:2px; }
+.activity-title { color:#82e6ff; font-size:18px; font-weight:700; margin:2px 0; text-shadow:0 0 10px rgba(93,173,226,.35); }
+.activity-subtitle { color:var(--text-dim); font-size:10px; line-height:1.35; }
+.activity-meta { display:flex; gap:5px; flex-wrap:wrap; margin-top:8px; }
+.activity-chip { padding:2px 5px; border:1px solid rgba(93,173,226,.5); color:#bceeff; font-size:9px; background:rgba(11,52,83,.55); }
+.activity-progress { height:5px; margin-top:9px; background:#06101f; border:1px solid rgba(93,173,226,.4); }
+.activity-progress>i { display:block; height:100%; width:22%; background:linear-gradient(90deg,#248bb0,#72e4f6); transition:width .4s ease-out; }
+.log-title { flex-shrink:0; margin:9px 16px 0; color:var(--gold); font-size:11px; letter-spacing:3px; text-align:center; }
+#gameScreen .log-area { padding:8px 12px 10px; gap:8px; }
+#gameScreen .log-entry { border-radius:3px; background:linear-gradient(90deg,rgba(15,52,96,.84),rgba(13,34,61,.72)); box-shadow:inset 0 0 0 1px rgba(93,173,226,.06); font-size:13px; padding:8px 11px; }
+#gameScreen .actions { padding:9px 12px 11px; background:linear-gradient(180deg,#0a1d35,#08162a); }
+#gameScreen .btn-row { gap:8px; margin-bottom:7px; }
+#gameScreen .btn { border-radius:4px; font-weight:600; background:linear-gradient(180deg,#123b66,#0d2d51); box-shadow:inset 0 0 0 1px rgba(114,228,246,.08),0 2px 0 rgba(0,0,0,.28); }
+#gameScreen .btn.action-active { border-color:#72e4f6; color:#aaf5ff; box-shadow:inset 0 0 12px rgba(72,206,235,.16),0 0 9px rgba(72,206,235,.22); }
+.activity-enter { animation:activityReveal .4s ease-out; }
+@keyframes activityReveal { from { opacity:.55; transform:translateY(5px); } to { opacity:1; transform:translateY(0); } }
+@media (max-height:760px) { .activity-panel { min-height:142px; margin-top:7px; } .activity-card { padding:7px; } .activity-title { font-size:15px; } #gameScreen .log-area { padding-top:6px; } }
+@media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.01ms!important; animation-iteration-count:1!important; scroll-behavior:auto!important; } }
+
+/* ===== 目标稿 1:1 视觉体系 ===== */
+:root {
+  --bg:#061426; --bg-light:#091d35; --bg-card:#0d3157;
+  --gold:#f0bd58; --gold-dim:#9d7733; --text:#f2e8d2;
+  --text-dim:#b2a88f; --blue:#67dcff; --red:#e84343;
+}
+body { background:#061426; border-left:1px solid #102b49; border-right:1px solid #102b49; }
+#gameScreen { position:relative; border-left:3px solid #08203a; border-right:3px solid #08203a; }
+#gameScreen::before,#gameScreen::after { content:''; position:absolute; z-index:8; pointer-events:none; width:16px; height:16px; border-color:var(--gold); opacity:.9; }
+#gameScreen::before { left:4px; top:136px; border-left:2px solid; border-top:2px solid; }
+#gameScreen::after { right:4px; bottom:4px; border-right:2px solid; border-bottom:2px solid; }
+#gameScreen .header { min-height:138px; padding:14px 20px 12px; overflow:visible; z-index:20; background:linear-gradient(180deg,rgba(7,27,51,.28),rgba(7,24,44,.95)),url('assets/activity-meditate.png') 68% 38%/cover no-repeat; border-bottom:3px double var(--gold-dim); }
+#gameScreen .header::after { content:''; position:absolute; inset:auto 0 0; height:42px; background:linear-gradient(180deg,transparent,#07182d); pointer-events:none; }
+#gameScreen .header>* { position:relative; z-index:1; }
+#gameScreen .header h1 { font-size:29px; line-height:1.2; letter-spacing:10px; margin-bottom:6px; color:#ffd475; }
+#gameScreen .header .player-info { font-size:13px; color:#f2e8d2; font-weight:600; }
+#gameScreen .header .player-res { font-size:12px; color:#ded3bb; }
+#gameScreen .bars-wrap { margin-top:7px; gap:5px; }
+#gameScreen .progress-bar { height:15px; background:#04101f; border:1px solid #b98b38; box-shadow:inset 0 0 0 1px rgba(0,0,0,.8); overflow:visible; }
+#gameScreen .progress-fill,#gameScreen .hp-fill { border-radius:1px; }
+#gameScreen .progress-fill { background:linear-gradient(90deg,#1caac7,#62efff); box-shadow:0 0 8px rgba(70,221,255,.36); }
+#gameScreen .hp-fill { background:linear-gradient(90deg,#ba282d,#f05248); }
+#gameScreen .progress-text { font-size:10px; font-weight:700; }
+#gameScreen .menu-btn { color:#e5bd65; top:12px; right:9px; }
+#gameScreen .header .menu-btn { position:absolute; }
+#gameScreen .header .menu-dropdown { position:absolute; top:46px; right:10px; z-index:60; }
+.quick-nav { flex-shrink:0; display:grid; grid-template-columns:repeat(4,1fr); gap:4px; padding:6px 8px calc(7px + env(safe-area-inset-bottom)); position:relative; background:linear-gradient(180deg,#101b1a,#090f0f); border-top:2px solid #947039; box-shadow:inset 0 3px #07100f,inset 0 4px rgba(214,173,88,.18),0 -7px 20px rgba(0,0,0,.38); }
+.quick-nav::before { content:''; position:absolute; left:8px; right:8px; top:2px; height:1px; background:linear-gradient(90deg,transparent,#c49a4d 12%,#c49a4d 88%,transparent); }
+.quick-nav-btn { min-height:62px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; position:relative; overflow:hidden; border:1px solid #7f6438; background:linear-gradient(180deg,#102926,#0a1c1b); color:#d8c7a0; font:700 11px/1.1 inherit; letter-spacing:2px; cursor:pointer; clip-path:polygon(5px 0,calc(100% - 5px) 0,100% 5px,100% calc(100% - 5px),calc(100% - 5px) 100%,5px 100%,0 calc(100% - 5px),0 5px); box-shadow:inset 0 0 0 2px #081411,inset 0 0 0 3px rgba(157,123,59,.18); -webkit-tap-highlight-color:transparent; }
+.quick-nav-btn::before,.quick-nav-btn::after { content:''; position:absolute; width:7px; height:7px; border-color:#a58143; pointer-events:none; }
+.quick-nav-btn::before { left:3px; top:3px; border-left:1px solid; border-top:1px solid; }
+.quick-nav-btn::after { right:3px; bottom:3px; border-right:1px solid; border-bottom:1px solid; }
+.quick-nav-btn:active { color:#f1cd7b; filter:brightness(1.12); }
+.quick-nav-btn.is-active { color:#e8faff; border-color:#67e0ee; background:linear-gradient(180deg,#15413f,#0c292a); box-shadow:inset 0 0 0 2px #071817,inset 0 0 12px rgba(80,222,235,.25),0 0 8px rgba(80,222,235,.42); }
+.quick-nav-btn.is-active::before,.quick-nav-btn.is-active::after { border-color:#8cf3ff; }
+.quick-nav-btn.is-active .quick-nav-icon { color:#8cf2fa; filter:drop-shadow(0 0 5px rgba(100,238,248,.65)); }
+.quick-nav-icon { width:26px; height:26px; display:block; color:#d6b365; filter:drop-shadow(2px 2px 0 #332714); shape-rendering:crispEdges; }
+.quick-nav-icon * { vector-effect:non-scaling-stroke; shape-rendering:crispEdges; }
+.status-sheet,.save-sheet { border-radius:2px; border-color:#a87b34; background:linear-gradient(180deg,#211a10,#101211); }
+.status-sheet .modal-header,.save-sheet .modal-header { background:#1c1710; border-bottom-color:#967039; }
+.status-sheet .modal-body,.save-sheet .modal-body { background:linear-gradient(180deg,#211a12,#101311); }
+.status-hero { padding:16px; text-align:center; border:1px solid rgba(175,133,58,.42); background:radial-gradient(circle at 50% 0,rgba(143,106,45,.2),transparent 62%); }
+.status-name { color:#f2c464; font-size:21px; letter-spacing:4px; }
+.status-realm { margin-top:5px; color:#9eb68b; font-size:13px; }
+.status-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:7px; margin-top:10px; }
+.status-stat { padding:10px; border:1px solid rgba(151,117,57,.34); background:rgba(18,18,15,.7); }
+.status-stat span { display:block; color:#93866c; font-size:10px; }
+.status-stat strong { display:block; margin-top:3px; color:#ede2c9; font-size:14px; font-weight:600; }
+.save-actions { display:grid; gap:10px; }
+.save-action { min-height:64px; padding:10px 14px; display:grid; grid-template-columns:34px 1fr; align-items:center; text-align:left; border:1px solid #94703a; background:linear-gradient(180deg,#292116,#171813); color:#e5bc68; font:700 15px inherit; cursor:pointer; }
+.save-action small { display:block; margin-top:4px; color:#9d927b; font-size:10px; font-weight:400; }
+.save-action svg { width:22px; height:22px; color:#a8b887; shape-rendering:crispEdges; }
+@media (max-height:1000px) {
+  #gameScreen .header { min-height:118px; padding-top:9px; padding-bottom:8px; }
+  #gameScreen .header h1 { font-size:25px; margin-bottom:3px; }
+  .activity-panel { min-height:210px; height:24vh; margin-top:6px; }
+  #gameScreen .log-area { min-height:82px; padding-top:8px; padding-bottom:9px; }
+  #gameScreen .actions { padding:8px 16px 9px; }
+  #gameScreen .btn-row { gap:7px; margin-bottom:6px; }
+  #gameScreen .btn { min-height:47px; }
+  .world-year-bar { padding:5px 0; }
+  .quick-nav { padding-top:3px; padding-bottom:calc(3px + env(safe-area-inset-bottom)); }
+  .quick-nav-btn { min-height:56px; }
+  .quick-nav-icon { width:24px; height:24px; }
+}
+.activity-panel { height:31vh; min-height:250px; max-height:340px; margin:10px 8px 0; border:3px double #d5a84f; border-radius:0; background-position:32% center; box-shadow:inset 0 0 0 3px #07182d,0 0 15px rgba(36,139,176,.25); }
+.activity-panel { border:1px solid rgba(208,164,72,.78); margin:8px 10px 0; outline:1px solid rgba(48,150,184,.24); outline-offset:-6px; }
+.activity-panel::before { content:''; position:absolute; inset:7px; z-index:7; border:1px solid rgba(93,173,226,.55); pointer-events:none; }
+.activity-panel::after { background:linear-gradient(90deg,transparent 0%,rgba(4,15,29,.05) 49%,rgba(4,15,29,.88) 57%,rgba(4,15,29,.98) 100%); }
+.activity-scene-label { top:13px; left:14px; z-index:6; background:rgba(4,17,32,.82); border-left:3px solid #58dfff; font-size:11px; font-weight:700; }
+.activity-card { right:14px; top:30px; bottom:22px; width:43%; z-index:6; padding:12px 10px; border:2px solid #a87c31; background:linear-gradient(180deg,rgba(5,21,39,.94),rgba(5,17,32,.96)); text-align:center; align-items:stretch; }
+.activity-kicker { align-self:center; width:100%; padding:4px 2px; margin-bottom:8px; font-size:12px; font-weight:700; border-top:1px solid #83652e; border-bottom:1px solid #83652e; color:#f2d48f; }
+.activity-title { font-size:23px; margin:0 0 5px; letter-spacing:1px; }
+.activity-subtitle { color:#eee0c3; font-size:11px; }
+.activity-period { color:#f5e9cf; font-size:13px; margin-top:8px; }
+.activity-meta { justify-content:center; flex-wrap:nowrap; margin-top:7px; }
+.activity-chip { flex:1; white-space:nowrap; padding:4px 3px; font-size:9px; border-color:#268db5; background:#082541; color:#c9f4ff; }
+.activity-progress { order:0; height:8px; margin:8px 0 0; border-color:#2986aa; }
+.activity-stop { align-self:center; margin-top:9px; padding:6px 12px; min-height:0!important; font-size:11px!important; border:2px solid #e4b754!important; color:#ffd26f!important; }
+.log-title { margin:0 8px; padding:9px 0 7px; font-size:14px; font-weight:700; border-left:3px double #b88a38; border-right:3px double #b88a38; background:linear-gradient(90deg,#07182d,#0b2745,#07182d); text-shadow:0 0 7px rgba(240,189,88,.25); }
+.log-title::before,.log-title::after { content:'◇'; margin:0 20px; color:#c49542; }
+#gameScreen .log-area { margin:0 10px; padding:12px 14px 16px; min-height:138px; border:1px solid rgba(176,132,52,.68); border-top-color:rgba(75,181,214,.46); outline:1px solid rgba(33,88,122,.32); outline-offset:-5px; background:linear-gradient(180deg,rgba(7,30,54,.92),rgba(5,18,34,.98)); scrollbar-color:#7f6738 #061426; scrollbar-width:thin; }
+#gameScreen .log-area::-webkit-scrollbar { width:7px; }
+#gameScreen .log-area::-webkit-scrollbar-track { background:#061426; border-left:1px solid #183957; }
+#gameScreen .log-area::-webkit-scrollbar-thumb { background:linear-gradient(#d9aa4d,#765622); border:1px solid #f0bd58; }
+#gameScreen .log-entry { min-height:47px; display:flex; align-items:center; font-size:13px; line-height:1.55; border-left-width:4px; border-radius:2px; color:#bcecff; }
+.world-year-bar { flex-shrink:0; text-align:center; font-size:13px; letter-spacing:2px; color:#efe1c4; padding:8px 0; background:linear-gradient(90deg,#07182d,#0b2948,#07182d); border-top:1px solid rgba(176,132,52,.72); border-bottom:1px solid rgba(176,132,52,.72); }
+.world-year-bar::before,.world-year-bar::after { content:'◇'; color:#d0a24a; margin:0 28px; }
+#gameScreen .actions { padding:15px 18px 20px; border:0; background:linear-gradient(180deg,#081d35,#061426); box-shadow:inset 0 1px rgba(176,132,52,.52); }
+#gameScreen .btn-row { gap:9px; margin-bottom:9px; }
+#gameScreen .btn { min-height:59px; position:relative; padding:10px 8px 10px 48px; font-size:16px; color:#ffc85f; border:1px solid rgba(191,143,52,.9); border-radius:0; background:linear-gradient(180deg,#124474,#0b3158); box-shadow:inset 0 0 0 1px rgba(6,20,38,.72),inset 0 0 14px rgba(13,80,126,.35),0 2px 0 #03101f; text-shadow:1px 1px 0 #503810; }
+#gameScreen .btn::before { position:absolute; left:17px; top:50%; transform:translateY(-50%); width:25px; color:#8feaff; font-size:23px; line-height:1; text-align:center; text-shadow:0 0 7px rgba(103,220,255,.45); }
+#gameScreen [data-action="map"]::before { content:'⌑'; }
+#gameScreen [data-action="explore"]::before { content:'◈'; }
+#gameScreen [data-action="rest"]::before { content:'▰'; }
+#gameScreen [data-action="meditate"]::before { content:'♙'; }
+#gameScreen [data-action="breakthrough"]::before { content:'▲'; }
+#gameScreen [data-action="time"]::before { content:'⌛'; }
+#gameScreen .btn.action-active { background:linear-gradient(180deg,#105280,#0b3b68); border-color:#6eeaff; color:#bdf7ff; box-shadow:inset 0 0 15px rgba(69,218,255,.18),0 0 10px #3bdcff,0 3px 0 #03101f; text-shadow:0 0 7px rgba(103,220,255,.55); }
+#gameScreen .btn:disabled { filter:saturate(.45); opacity:.48; }
+#gameScreen .btn:disabled::before { color:#55718b; text-shadow:none; }
+
+/* 弹窗和附属页面统一为同一像素设计系统 */
+.modal-overlay { background:rgba(1,8,17,.86); backdrop-filter:blur(3px); }
+.modal { border:3px double #c6973f; border-radius:2px; background:linear-gradient(180deg,#0b2947,#07182d); box-shadow:0 0 0 3px #061426,0 12px 38px rgba(0,0,0,.6); }
+.modal-header { background:#081d35; border-bottom:2px solid #a47a32; }
+.modal-header h3 { color:#ffd06b; font-weight:700; letter-spacing:3px; }
+.modal-body { background:linear-gradient(180deg,rgba(9,30,53,.96),rgba(5,18,34,.98)); }
+.npc-card,.sect-info-card,.shop-item,.inv-item,.combat-panel { border-radius:2px; border:1px solid rgba(157,119,51,.7); border-left:4px solid #52cced; background:linear-gradient(90deg,#0d3157,#081e37); box-shadow:inset 0 0 0 1px rgba(103,220,255,.05); }
+.map-grid { border:3px double #c6973f; border-radius:0; background:#04101f; }
+.map-cell { border-radius:0; }
+.create-screen,.origin-reveal,.death-screen { background:radial-gradient(circle at 50% 32%,rgba(23,73,111,.5),transparent 38%),linear-gradient(180deg,#091e37,#051323); }
+.create-screen h2,.origin-reveal h2,.death-title { color:#ffd06b; font-weight:700; text-shadow:2px 2px #513a16; }
+.name-btn,.death-btn { border:2px solid #bd8c32; border-radius:2px; background:linear-gradient(180deg,#123d68,#0a294a); color:#f5e6c8; box-shadow:inset 0 0 0 2px #07182d; }
+.menu-dropdown { border:2px solid #bd8c32; border-radius:2px; background:#081d35; }
+.menu-item { border-bottom:1px solid rgba(157,119,51,.35); }
+.activity-clouds { position:absolute; z-index:1; left:0; top:5%; width:200%; height:68%; pointer-events:none; opacity:.18; background-image:url('assets/clouds-overlay.png'),url('assets/clouds-overlay.png'); background-repeat:no-repeat,no-repeat; background-size:50% 100%,50% 100%; background-position:0 50%,100% 50%; animation:cloudTrack 24s linear infinite; image-rendering:pixelated; will-change:transform; }
+.activity-panel[data-period="day"] .activity-clouds { opacity:.08; mix-blend-mode:screen; }
+.activity-panel[data-period="day"] .activity-person,.activity-panel[data-period="day"] .activity-person-standing { filter:brightness(1.08) saturate(.92); }
+.activity-aura { position:absolute; z-index:2; left:20%; top:59%; width:124px; height:102px; transform:translate(-50%,-50%); pointer-events:none; background:url('assets/qi-orbit.png') center/contain no-repeat; opacity:.72; filter:drop-shadow(0 0 5px rgba(70,231,255,.78)) drop-shadow(0 0 12px rgba(31,173,220,.38)); animation:qiOrbitFlow 6s linear infinite; image-rendering:pixelated; will-change:transform,filter; }
+.activity-person { position:absolute; z-index:3; inset:0; pointer-events:none; background:url('assets/activity-meditate-person.png') 32% center/cover no-repeat; image-rendering:pixelated; }
+.activity-person-standing { display:none; position:absolute; z-index:3; inset:0; pointer-events:none; background-image:url('assets/activity-standing-person.png'); background-repeat:no-repeat; background-size:auto 76%; background-position:32% 40%; image-rendering:pixelated; }
+.activity-panel[data-action="map"] .activity-person,.activity-panel[data-action="explore"] .activity-person,.activity-panel[data-action="time"] .activity-person,.activity-panel[data-action="idle"][data-scene="market"] .activity-person,.activity-panel[data-action="idle"][data-scene="sect"] .activity-person,.activity-panel[data-action="idle"][data-scene="ruin"] .activity-person { display:none; }
+.activity-panel[data-action="map"] .activity-person-standing,.activity-panel[data-action="explore"] .activity-person-standing,.activity-panel[data-action="time"] .activity-person-standing,.activity-panel[data-action="idle"][data-scene="market"] .activity-person-standing,.activity-panel[data-action="idle"][data-scene="sect"] .activity-person-standing,.activity-panel[data-action="idle"][data-scene="ruin"] .activity-person-standing { display:block; }
+.activity-panel[data-action="map"] .activity-aura,.activity-panel[data-action="explore"] .activity-aura,.activity-panel[data-action="time"] .activity-aura,.activity-panel[data-action="idle"][data-scene="market"] .activity-aura,.activity-panel[data-action="idle"][data-scene="sect"] .activity-aura,.activity-panel[data-action="idle"][data-scene="ruin"] .activity-aura { display:none; }
+.activity-aura::after { content:''; position:absolute; inset:26%; border-radius:50%; background:radial-gradient(circle,rgba(109,244,255,.26),rgba(31,173,220,.06) 45%,transparent 72%); box-shadow:0 0 17px rgba(70,231,255,.42); }
+@keyframes cloudTrack { from { transform:translate3d(0,0,0); } to { transform:translate3d(-50%,0,0); } }
+@keyframes qiOrbitFlow { 0% { transform:translate(-50%,-50%) rotate(0deg) scale(.96); filter:drop-shadow(0 0 4px rgba(70,231,255,.62)) drop-shadow(0 0 10px rgba(31,173,220,.3)); } 50% { transform:translate(-50%,-50%) rotate(180deg) scale(1.04); filter:drop-shadow(0 0 8px rgba(131,249,255,.9)) drop-shadow(0 0 18px rgba(31,173,220,.48)); } 100% { transform:translate(-50%,-50%) rotate(360deg) scale(.96); filter:drop-shadow(0 0 4px rgba(70,231,255,.62)) drop-shadow(0 0 10px rgba(31,173,220,.3)); } }
+/* 主框用切图，次级控件保持克制，避免金饰层层堆叠。 */
+.world-year-bar { border-top:1px solid rgba(176,132,52,.72); border-bottom:1px solid rgba(176,132,52,.72); box-shadow:inset 0 1px rgba(240,189,88,.08); }
+#gameScreen .actions { border:0; padding:12px 16px 18px; box-shadow:inset 0 2px #9d7733,inset 0 -2px #9d7733; }
+#gameScreen .btn { border:1px solid rgba(191,143,52,.9); padding-left:42px; padding-right:42px; text-align:center; clip-path:polygon(4px 0,calc(100% - 4px) 0,100% 4px,100% calc(100% - 4px),calc(100% - 4px) 100%,4px 100%,0 calc(100% - 4px),0 4px); box-shadow:inset 0 0 0 1px rgba(6,20,38,.72),inset 0 0 13px rgba(39,125,180,.17),0 2px 0 #03101f; }
+#gameScreen .btn.action-active { border-color:#6eeaff; }
+@media (max-height:800px) {
+  #gameScreen .header { min-height:112px; padding-top:8px; }
+  #gameScreen .header h1 { font-size:23px; margin-bottom:2px; }
+  .activity-panel { min-height:220px; height:29vh; }
+  #gameScreen .btn { min-height:51px; }
+}
 
 .create-screen {
   flex: 1; display: flex; flex-direction: column;
@@ -229,61 +405,77 @@ body {
 #gameScreen { display: flex; flex-direction: column; height: 100%; min-height: 0; }
 .hidden { display: none !important; }
 
-.map-container { display: flex; flex-direction: column; align-items: center; gap: 10px; }
-.map-legend { display: flex; gap: 10px; font-size: 11px; color: var(--text-dim); flex-wrap: wrap; justify-content: center; }
-.map-legend span { display: flex; align-items: center; gap: 3px; }
-.legend-dot { width: 12px; height: 12px; border-radius: 2px; display: inline-block; }
+.map-modal { width:calc(100% - 20px); max-width:420px; border:1px solid #b78938; border-radius:0; background:linear-gradient(180deg,#07192e 0%,#051426 100%); box-shadow:0 0 0 3px #06101e,0 0 0 4px rgba(74,174,214,.32),0 18px 50px rgba(0,0,0,.72); }
+.map-modal .modal-header { position:relative; padding:16px 18px 13px; border-bottom:1px solid rgba(197,151,63,.72); background:linear-gradient(90deg,rgba(12,49,78,.72),rgba(5,18,34,.3),rgba(12,49,78,.72)); }
+.map-modal .modal-header::after { content:'◆'; position:absolute; left:50%; bottom:-7px; transform:translateX(-50%); padding:0 8px; color:#d2a64e; background:#07182b; font-size:10px; }
+.map-modal .modal-header h3 { width:100%; text-align:center; color:#f0c465; font-size:19px; font-weight:700; letter-spacing:8px; text-shadow:0 2px #3c2b12; }
+.map-modal .modal-close { position:absolute; right:9px; top:8px; color:#8eb3c6; }
+.map-modal .modal-body { padding:16px 12px 14px; background:radial-gradient(circle at 50% 36%,rgba(29,96,128,.16),transparent 55%); }
+.map-container { display:flex; flex-direction:column; align-items:stretch; gap:10px; }
+.map-info { min-height:auto; padding:9px 10px; border:1px solid rgba(71,149,183,.35); background:rgba(4,17,32,.74); color:#b9d9e7; font-size:11px; text-align:center; letter-spacing:.5px; }
+.map-info strong { color:#f0c465; font-size:13px; }
+.map-info em { color:#65daf5; font-style:normal; }
+.map-legend { display:grid; grid-template-columns:repeat(5,1fr); gap:5px; padding:0 2px; color:#8fb1c0; font-size:9px; }
+.map-legend span { display:flex; align-items:center; justify-content:center; gap:4px; white-space:nowrap; }
+.legend-dot { width:9px; height:9px; flex:0 0 auto; display:inline-block; border:1px solid rgba(157,205,220,.18); box-shadow:inset 0 0 0 1px rgba(0,0,0,.22); }
 .map-grid {
   display: grid;
-  grid-template-columns: 14px repeat(16, 20px);
-  grid-template-rows: 14px repeat(16, 20px);
+  grid-template-columns: 14px repeat(16, minmax(0, 1fr));
+  grid-template-rows: 14px repeat(16, minmax(0, 1fr));
   gap: 1px;
-  background: var(--bg);
-  border: 1px solid var(--gold-dim);
-  border-radius: 4px;
-  overflow: auto;
-  max-height: 50vh;
+  width:100%; max-width:374px; aspect-ratio:1/1;
+  align-self:center; padding:5px;
+  background:#020b15;
+  border:1px solid #bd8e39;
+  outline:1px solid rgba(73,164,199,.36); outline-offset:-4px;
+  border-radius:0; overflow:hidden;
+  box-shadow:inset 0 0 24px rgba(0,0,0,.8),0 8px 22px rgba(0,0,0,.3);
 }
 .map-label {
   display: flex; align-items: center; justify-content: center;
-  font-size: 7px; color: var(--text-dim); user-select: none;
+  font-size:6px; color:#54788b; user-select:none;
 }
 .map-cell {
-  width: 20px; height: 20px;
+  width:100%; height:100%; min-width:0; min-height:0;
   display: flex; align-items: center; justify-content: center;
-  font-size: 8px; cursor: default; position: relative;
-  border-radius: 2px; transition: all 0.15s;
+  font-size:8px; cursor:default; position:relative;
+  border:1px solid rgba(70,121,143,.13); border-radius:0;
+  transition:filter .15s,box-shadow .15s,transform .15s;
+  image-rendering:pixelated;
 }
-.map-cell.qi-1 { background: #2a2a3a; }
-.map-cell.qi-2 { background: #1e3a4a; }
-.map-cell.qi-3 { background: #1a4a6a; }
-.map-cell.qi-4 { background: #3a4a1a; }
-.map-cell.market { background: #3a1a4a !important; }
-.map-cell.reachable { box-shadow: inset 0 0 0 2px rgba(212,168,83,0.6); cursor: pointer; }
-.map-cell.reachable:active { transform: scale(0.9); }
+.map-cell.qi-1 { background:linear-gradient(135deg,#151c2b 0 45%,#1b2635 46% 100%); }
+.map-cell.qi-2 { background:linear-gradient(135deg,#123044 0 48%,#17394b 49% 100%); }
+.map-cell.qi-3 { background:linear-gradient(135deg,#0f4059 0 46%,#15516a 47% 100%); }
+.map-cell.qi-4 { background:linear-gradient(135deg,#263b22 0 48%,#31492a 49% 100%); }
+.map-cell.market { background:linear-gradient(135deg,#47234d,#64295c) !important; }
+.map-cell.reachable { z-index:1; box-shadow:inset 0 0 0 1px #cf9d43,0 0 4px rgba(218,169,75,.28); cursor:pointer; filter:brightness(1.12); }
+.map-cell.reachable:active { transform:scale(.86); }
 .map-cell.has-player::after {
-  content: ''; width: 10px; height: 10px;
-  background: var(--gold); border-radius: 50%;
-  box-shadow: 0 0 6px var(--gold);
+  content:''; width:9px; height:9px; z-index:3;
+  background:#72e9ff; border:2px solid #f1c45f;
+  transform:rotate(45deg);
+  box-shadow:0 0 0 2px rgba(5,25,41,.86),0 0 9px #41d8ff;
 }
 .map-cell.has-npc::before {
-  content: ''; width: 6px; height: 6px;
-  background: var(--red); border-radius: 50%;
-  position: absolute; top: 2px; right: 2px;
+  content:''; width:4px; height:4px; z-index:4;
+  background:#ff5c62; border:1px solid #ffd0c8;
+  position:absolute; top:2px; right:2px;
+  box-shadow:0 0 4px #ef3d45;
 }
-.map-cell.market::after { content: '市'; color: var(--purple); font-size: 10px; font-weight: bold; }
+.map-cell.market::after { content:'市'; color:#ffd06b; font-size:9px; font-weight:bold; text-shadow:0 1px #351327; }
 .map-cell.has-rift { box-shadow: inset 0 0 6px #e67e22; animation: pulse 1s infinite; }
 .map-cell.has-herb { box-shadow: inset 0 0 4px var(--green); }
-.map-cell.has-ruin { box-shadow: inset 0 0 6px #e67e22; background: #3a2a1a !important; }
-.map-cell.sect-good { background: #1a3a2a !important; }
-.map-cell.sect-evil { background: #3a1a1a !important; }
-.map-cell.sect-neutral { background: #2a2a3a !important; }
+.map-cell.has-ruin { box-shadow:inset 0 0 7px #d98632; background:#49331d !important; }
+.map-cell.sect-good { background:linear-gradient(135deg,#174331,#205640) !important; }
+.map-cell.sect-evil { background:linear-gradient(135deg,#481f27,#5d2830) !important; }
+.map-cell.sect-neutral { background:linear-gradient(135deg,#303245,#3d4056) !important; }
 .map-cell.sect-good::after, .map-cell.sect-evil::after, .map-cell.sect-neutral::after {
-  content: attr(data-label); color: var(--text); font-size: 7px; font-weight: bold;
+  content:attr(data-label); color:#e8dcc2; font-size:8px; font-weight:bold; text-shadow:0 1px #07111c;
 }
 .map-cell.sect-good.has-player::after, .map-cell.sect-evil.has-player::after, .map-cell.sect-neutral.has-player::after {
-  content: ''; background: var(--gold); width: 10px; height: 10px; border-radius: 50%; box-shadow: 0 0 6px var(--gold);
+  content:''; width:9px; height:9px; background:#72e9ff; border:2px solid #f1c45f; transform:rotate(45deg); box-shadow:0 0 0 2px rgba(5,25,41,.86),0 0 9px #41d8ff;
 }
+.map-hint { color:#66899a; text-align:center; font-size:10px; letter-spacing:.5px; }
 .scene-popup {
   position: fixed; inset: 0; z-index: 300;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -530,6 +722,1490 @@ body {
   transition: all 0.3s;
 }
 .death-btn:active { background: var(--gold); color: var(--bg); }
+
+/* 角色状态铭牌：顶部只保留题名与核心进度，身份信息集中在场景内。 */
+#gameScreen .header { min-height:92px; padding:9px 20px 8px; }
+#gameScreen .header h1 { margin-bottom:4px; }
+#gameScreen .bars-wrap { margin-top:2px; }
+.character-card {
+  top:50%; bottom:auto; height:246px; transform:translateY(-50%);
+  justify-content:flex-start; text-align:left; gap:8px;
+  padding:10px 11px 11px; overflow:hidden;
+  box-shadow:0 8px 18px rgba(0,0,0,.36), inset 0 0 18px rgba(32,104,127,.12);
+}
+.character-card-title {
+  position:relative; display:flex; align-items:center; justify-content:center;
+  height:20px; color:#d9b35f; font-size:10px; font-weight:bold; letter-spacing:3px;
+}
+.character-card-title::before,.character-card-title::after {
+  content:""; height:1px; flex:1; background:linear-gradient(90deg,transparent,#9f782f);
+}
+.character-card-title::after { background:linear-gradient(90deg,#9f782f,transparent); }
+.character-card-title span { padding:0 7px; white-space:nowrap; }
+.character-card-head {
+  display:flex; align-items:center; gap:11px; min-width:0;
+  padding-bottom:8px; border-bottom:1px solid rgba(168,124,49,.72);
+}
+.character-avatar {
+  width:62px; height:62px; flex:0 0 62px;
+  border:1px solid #b88a3b;
+  background-color:#10263a;
+  background-image:url('assets/activity-standing-person.png');
+  background-repeat:no-repeat; background-size:auto 250px; background-position:-105px -43px;
+  box-shadow:0 0 0 2px #071526, 0 0 0 3px rgba(76,202,231,.45), inset 0 0 8px rgba(55,206,232,.22);
+  image-rendering:pixelated;
+}
+.character-identity { min-width:0; flex:1; }
+.character-name {
+  color:#f3d28c; font-size:17px; line-height:1.2; font-weight:bold; letter-spacing:2px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.character-name small { margin-left:5px; color:#94cfda; font-size:9px; font-weight:normal; letter-spacing:0; }
+.character-origin {
+  display:flex; align-items:center; gap:5px; margin-top:4px;
+  color:#b7c9cc; font-size:10px; white-space:nowrap; overflow:hidden;
+}
+.character-origin i { width:2px; height:2px; flex:0 0 2px; background:#b88a3b; transform:rotate(45deg); }
+.character-realm { margin-top:6px; color:#67d9ed; font-size:12px; font-weight:bold; letter-spacing:1px; text-shadow:0 0 6px rgba(70,210,235,.32); }
+.character-life {
+  display:flex; align-items:baseline; justify-content:center; gap:5px;
+  min-height:28px; border:1px solid rgba(168,124,49,.48);
+  background:linear-gradient(90deg,rgba(11,39,57,.72),rgba(20,52,62,.72),rgba(11,39,57,.72)); color:#b9cbd0; font-size:10px;
+}
+.character-life strong { color:#f1d18b; font-size:15px; letter-spacing:1px; }
+.character-life small { color:#9eb1b7; font-size:9px; }
+.character-stats { display:grid; grid-template-columns:1fr 1fr; gap:5px; min-width:0; }
+.character-stat {
+  min-width:0; min-height:36px; display:flex; align-items:center; justify-content:flex-start; gap:7px; padding:3px 8px;
+  border:1px solid rgba(42,161,189,.63); background:rgba(7,34,53,.72);
+  color:#d5e5e5; font-size:9px; overflow:hidden;
+}
+.character-stat svg { width:18px; height:18px; flex:0 0 18px; fill:#68dced; filter:drop-shadow(0 0 3px rgba(71,216,236,.52)); }
+.character-stat-copy { display:flex; min-width:0; flex:1; flex-direction:column; gap:1px; }
+.character-stat-copy small { color:#789ba4; font-size:7px; line-height:1; }
+.character-stat strong { min-width:0; color:#eef0df; font-size:11px; line-height:1.15; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.character-stat > span { font-size:7px; white-space:nowrap; }
+.character-position { grid-column:1 / -1; padding:3px 9px; }
+.character-position strong { overflow:visible; }
+.character-position #posQi { color:#9fc3c8; overflow:hidden; text-overflow:ellipsis; }
+.activity-runtime { display:none !important; }
+
+/* 墨玉古风配色：蓝青仅作为灵气与交互高光，不再充当大面积底色。 */
+:root {
+  --bg:#111714;
+  --bg-light:#18211d;
+  --bg-card:#20302a;
+  --gold:#d8b36a;
+  --gold-dim:#846c3d;
+  --text:#e9dfca;
+  --text-dim:#aa9f89;
+  --blue:#72cfcb;
+}
+body {
+  background:#111714;
+  border-color:#28362f;
+}
+body::before {
+  background:radial-gradient(circle at 50% -8%,rgba(124,108,64,.12),transparent 40%),linear-gradient(180deg,#18211d,#0d1210 78%);
+}
+#gameScreen {
+  background:linear-gradient(180deg,#18221e 0%,#101713 52%,#0c110f 100%);
+  border-color:#26372f;
+}
+#gameScreen .header {
+  background:linear-gradient(180deg,rgba(16,25,22,.18),rgba(15,22,20,.9)),url('assets/activity-meditate.png') 68% 38%/cover no-repeat;
+  border-bottom-color:#7f673b;
+}
+#gameScreen .header::after { background:linear-gradient(180deg,transparent,#111916); }
+#gameScreen .progress-bar { background:#101512; border-color:#8b7040; }
+.activity-panel {
+  background-color:#17211d;
+  box-shadow:inset 0 0 0 3px #121a17,0 6px 18px rgba(0,0,0,.3);
+}
+.activity-panel::after {
+  background:linear-gradient(90deg,transparent 0%,rgba(16,25,22,.03) 48%,rgba(17,26,23,.78) 60%,rgba(14,22,19,.94) 100%);
+}
+.activity-scene-label {
+  color:#e5dbc1; background:rgba(21,31,27,.8); border-left-color:#c89f55;
+}
+.activity-card,.character-card {
+  border-color:#987a42;
+  background:linear-gradient(145deg,rgba(33,46,40,.88),rgba(17,26,23,.9));
+  box-shadow:0 8px 18px rgba(0,0,0,.3),inset 0 0 22px rgba(123,151,119,.07);
+  backdrop-filter:blur(2px);
+}
+.character-card-head { border-bottom-color:rgba(154,125,68,.62); }
+.character-avatar {
+  background-color:#213029;
+  box-shadow:0 0 0 2px #131c18,0 0 0 3px rgba(181,145,76,.52),inset 0 0 8px rgba(143,168,125,.15);
+}
+.character-name { color:#f0d28f; }
+.character-name small,.character-origin { color:#b7b4a4; }
+.character-realm { color:#a9c998; text-shadow:0 0 6px rgba(142,190,132,.22); }
+.character-life {
+  border-color:rgba(151,122,65,.5);
+  background:linear-gradient(90deg,rgba(31,42,36,.72),rgba(49,58,42,.72),rgba(31,42,36,.72));
+}
+.character-stat {
+  border-color:rgba(113,139,111,.58);
+  background:linear-gradient(180deg,rgba(37,54,46,.78),rgba(25,39,33,.82));
+}
+.character-stat svg { fill:#c3b06f; filter:drop-shadow(0 0 3px rgba(193,166,92,.26)); }
+.character-stat-copy small { color:#8f9c8c; }
+#gameScreen .log-area {
+  background:linear-gradient(180deg,rgba(25,37,32,.94),rgba(14,22,19,.98));
+  border-color:rgba(139,111,58,.58); border-top-color:rgba(128,147,111,.45);
+  outline-color:rgba(78,100,85,.32); scrollbar-color:#75623b #111714;
+}
+#gameScreen .log-area::-webkit-scrollbar-track { background:#111714; border-left-color:#2b3b33; }
+#gameScreen .log-entry {
+  color:#d9e0d3;
+  background:linear-gradient(90deg,rgba(38,57,48,.88),rgba(26,40,34,.76));
+  box-shadow:inset 0 0 0 1px rgba(174,196,158,.04);
+}
+.log-title,.world-year-bar {
+  background:linear-gradient(90deg,#111916,#243229,#111916);
+}
+#gameScreen .actions {
+  background:linear-gradient(180deg,#18231e,#101713);
+  box-shadow:inset 0 2px #80683b,inset 0 -2px #80683b;
+}
+#gameScreen .btn {
+  color:#e8c577;
+  border-color:rgba(156,124,62,.9);
+  background:linear-gradient(180deg,#2d493d,#20372f);
+  box-shadow:inset 0 0 0 1px rgba(10,18,15,.74),inset 0 0 12px rgba(105,139,112,.12),0 2px 0 #0a0f0d;
+  text-shadow:1px 1px 0 #49391d;
+}
+#gameScreen .btn::before { color:#c7bc79; text-shadow:0 0 6px rgba(198,182,107,.25); }
+#gameScreen .btn.action-active {
+  color:#e6f0da; border-color:#9cc78f;
+  background:linear-gradient(180deg,#3d614d,#294739);
+  box-shadow:inset 0 0 14px rgba(151,195,137,.16),0 0 8px rgba(139,186,130,.34),0 3px 0 #0a0f0d;
+  text-shadow:0 0 7px rgba(173,210,157,.35);
+}
+.modal-overlay { background:rgba(8,12,10,.86); }
+.modal { background:linear-gradient(180deg,#26372f,#141d19); box-shadow:0 0 0 3px #101713,0 12px 38px rgba(0,0,0,.6); }
+.modal-header { background:#1b2822; }
+.modal-body { background:linear-gradient(180deg,rgba(31,46,39,.97),rgba(17,26,22,.99)); }
+.npc-card,.sect-info-card,.shop-item,.inv-item,.combat-panel {
+  border-left-color:#8fa77e;
+  background:linear-gradient(90deg,#263c32,#192a23);
+}
+.menu-dropdown { background:#1a2821; }
+
+/* 竖屏高度自适应：放在所有旧断点之后，避免规则互相覆盖。 */
+@media (max-height:800px) {
+  #gameScreen .header { min-height:74px; padding:5px 18px 6px; }
+  #gameScreen .header h1 { font-size:22px; line-height:1.1; margin-bottom:1px; }
+  #gameScreen .bars-wrap { margin-top:3px; gap:2px; }
+  #gameScreen .progress-bar { height:12px; }
+  #gameScreen .menu-btn { top:6px; }
+
+  .activity-panel { min-height:176px; height:24vh; max-height:190px; margin-top:5px; }
+  .activity-panel::before { inset:5px; }
+  .activity-scene-label { top:9px; left:10px; padding:2px 7px; font-size:9px; }
+  .activity-card { top:15px; bottom:10px; right:10px; width:43%; height:auto; transform:none; padding:6px 7px; }
+  .character-card { gap:4px; }
+  .character-card-title { display:none; }
+  .character-card-head { gap:6px; padding-bottom:5px; }
+  .character-avatar { width:40px; height:40px; flex-basis:40px; background-size:auto 162px; background-position:-68px -28px; }
+  .character-name { font-size:13px; }
+  .character-name small { margin-left:3px; font-size:7px; }
+  .character-origin { margin-top:2px; gap:3px; font-size:8px; }
+  .character-realm { margin-top:3px; font-size:9px; }
+  .character-life { min-height:18px; gap:4px; font-size:8px; }
+  .character-life strong { font-size:11px; }
+  .character-stats { gap:4px; }
+  .character-stat { min-height:23px; gap:4px; padding:2px 5px; font-size:8px; }
+  .character-stat svg { width:13px; height:13px; flex-basis:13px; }
+  .character-stat strong { font-size:8px; }
+  .character-stat-copy small { font-size:6px; }
+  .character-stat > span { font-size:6px; }
+  .activity-kicker { margin-bottom:3px; padding:2px; font-size:10px; }
+  .activity-title { margin-bottom:2px; font-size:17px; }
+  .activity-subtitle { font-size:9px; }
+  .activity-period { margin-top:3px; font-size:10px; }
+  .activity-meta { margin-top:3px; gap:4px; }
+  .activity-chip { padding:2px; font-size:8px; }
+  .activity-progress { margin-top:4px; height:4px; }
+  #gameScreen .activity-stop { min-height:28px; margin-top:5px; padding:3px 5px; font-size:10px; }
+
+  .log-title { min-height:31px; padding:5px 0; font-size:13px; }
+  #gameScreen .log-area { flex:1 1 auto; min-height:42px; margin:0 8px; padding:6px 10px; gap:5px; }
+  #gameScreen .log-entry { min-height:34px; padding:5px 8px; font-size:11px; }
+  .world-year-bar { padding:3px 0; font-size:11px; }
+  .world-year-bar::before,.world-year-bar::after { margin:0 16px; }
+
+  #gameScreen .actions { flex-shrink:0; padding:6px 12px 7px; }
+  #gameScreen .btn-row { gap:6px; margin-bottom:5px; }
+  #gameScreen .btn { min-height:39px; padding:5px 34px; font-size:13px; }
+  #gameScreen .btn::before { left:12px; width:20px; font-size:17px; }
+  #gameScreen .activity-stop { min-height:25px; margin-top:3px; padding:2px 4px; font-size:9px; }
+  .quick-nav { padding:3px 7px calc(4px + env(safe-area-inset-bottom)); gap:3px; }
+  .quick-nav-btn { min-height:50px; gap:2px; font-size:10px; }
+  .quick-nav-icon { width:22px; height:22px; }
+}
+
+@media (max-height:650px) {
+  #gameScreen .header { min-height:70px; }
+  .activity-panel { min-height:156px; height:23vh; }
+  .activity-subtitle,.activity-period { display:none; }
+  #gameScreen .log-area { min-height:30px; }
+  #gameScreen .btn { min-height:35px; }
+  .quick-nav-btn { min-height:44px; }
+}
+
+/* 横向角色状态条 + 无遮挡场景画面（最终布局覆盖） */
+#gameScreen .header {
+  min-height:176px;
+  padding:9px 18px 10px;
+}
+#gameScreen .header h1 { margin-bottom:7px; }
+#gameScreen .header .character-card {
+  position:relative; inset:auto; width:100%; height:78px; transform:none;
+  display:grid; grid-template-columns:minmax(148px,1.35fr) 66px minmax(184px,1.65fr);
+  align-items:stretch; gap:7px; padding:7px;
+  text-align:left; overflow:hidden;
+  border:1px solid rgba(151,122,65,.72);
+  background:linear-gradient(90deg,rgba(30,45,38,.9),rgba(21,32,27,.86));
+  box-shadow:inset 0 0 0 1px rgba(8,14,11,.72),inset 0 0 18px rgba(127,153,113,.06);
+}
+#gameScreen .header .character-card-head {
+  min-width:0; height:auto; gap:9px; padding:0 8px 0 0;
+  border:0; border-right:1px solid rgba(151,122,65,.45);
+}
+#gameScreen .header .character-avatar {
+  width:54px; height:54px; flex-basis:54px;
+  background-size:auto 218px; background-position:-92px -37px;
+}
+#gameScreen .header .character-name { font-size:16px; }
+#gameScreen .header .character-origin { margin-top:3px; font-size:9px; }
+#gameScreen .header .character-realm { margin-top:3px; font-size:11px; }
+#gameScreen .header .character-life {
+  min-width:0; min-height:0; height:auto; flex-direction:column; align-items:center; justify-content:center; gap:0;
+  border:0; border-right:1px solid rgba(151,122,65,.45); background:none;
+}
+#gameScreen .header .character-life strong { font-size:16px; line-height:1.2; }
+#gameScreen .header .character-life small { font-size:8px; }
+#gameScreen .header .character-stats {
+  min-width:0; display:grid; grid-template-columns:.82fr .9fr 1.38fr; gap:4px;
+}
+#gameScreen .header .character-stat {
+  min-width:0; min-height:0; height:auto; justify-content:center; gap:4px; padding:3px 5px;
+  border-color:rgba(113,139,111,.42); background:rgba(30,47,39,.55);
+}
+#gameScreen .header .character-stat svg { width:15px; height:15px; flex-basis:15px; }
+#gameScreen .header .character-stat strong { font-size:10px; }
+#gameScreen .header .character-stat-copy small { font-size:7px; }
+#gameScreen .header .character-position { grid-column:auto; }
+#gameScreen .header .character-position #posQi { display:block; max-width:72px; overflow:hidden; text-overflow:ellipsis; }
+#gameScreen .bars-wrap { margin-top:7px; gap:4px; }
+.activity-panel {
+  background-position:center center;
+  box-shadow:inset 0 0 0 3px rgba(16,25,22,.78),0 6px 18px rgba(0,0,0,.3);
+}
+.activity-panel::after {
+  background:linear-gradient(180deg,rgba(8,14,12,.12),transparent 24%,transparent 72%,rgba(9,15,13,.18));
+}
+.activity-panel::before { z-index:5; }
+.activity-scene-label { z-index:6; }
+
+/* 场景缩短后，剩余高度交给记录区；操作按钮区只按内容占高。 */
+@media (min-height:1001px) {
+  #gameScreen .log-area {
+    flex:1 1 150px;
+    min-height:150px;
+    max-height:none;
+  }
+  #gameScreen .actions {
+    flex:0 0 auto;
+    height:auto;
+    min-height:0;
+    max-height:260px;
+    overflow-y:auto;
+  }
+  .quick-nav {
+    flex:0 0 100px;
+    min-height:100px;
+  }
+}
+
+@media (max-width:420px) {
+  #gameScreen .header .character-card { grid-template-columns:minmax(128px,1.3fr) 52px minmax(145px,1.5fr); gap:4px; padding:6px; }
+  #gameScreen .header .character-card-head { gap:6px; padding-right:5px; }
+  #gameScreen .header .character-avatar { width:46px; height:46px; flex-basis:46px; background-size:auto 186px; background-position:-78px -32px; }
+  #gameScreen .header .character-name { font-size:14px; }
+  #gameScreen .header .character-origin { font-size:8px; }
+  #gameScreen .header .character-realm { font-size:9px; }
+  #gameScreen .header .character-life strong { font-size:13px; }
+  #gameScreen .header .character-stat { gap:3px; padding:2px 3px; }
+  #gameScreen .header .character-stat svg { width:12px; height:12px; flex-basis:12px; }
+  #gameScreen .header .character-stat strong { font-size:8px; }
+  #gameScreen .header .character-stat-copy small { font-size:6px; }
+}
+
+@media (max-height:800px) {
+  #gameScreen .header { min-height:146px; padding:5px 16px 7px; }
+  #gameScreen .header h1 { margin-bottom:4px; }
+  #gameScreen .header .character-card { height:62px; padding:5px 6px; }
+  #gameScreen .header .character-avatar { width:42px; height:42px; flex-basis:42px; background-size:auto 170px; background-position:-72px -29px; }
+  #gameScreen .header .character-name { font-size:13px; }
+  #gameScreen .header .character-origin { margin-top:1px; font-size:7px; }
+  #gameScreen .header .character-realm { margin-top:2px; font-size:8px; }
+  #gameScreen .header .character-life strong { font-size:12px; }
+  #gameScreen .bars-wrap { margin-top:4px; }
+}
+
+@media (max-height:650px) {
+  #gameScreen .header { min-height:136px; }
+  #gameScreen .header .character-card { height:57px; }
+  #gameScreen .header .character-avatar { width:38px; height:38px; flex-basis:38px; background-size:auto 154px; background-position:-65px -26px; }
+}
+
+/* 状态条可读性复核：横向双层结构，避免五列挤压。 */
+#gameScreen .header {
+  min-height:205px;
+  padding:12px 18px 11px;
+}
+#gameScreen .header h1 {
+  margin:0 0 8px;
+  line-height:1.25;
+}
+#gameScreen .header .character-card {
+  height:108px;
+  grid-template-columns:minmax(0,1fr) 86px;
+  grid-template-rows:62px 32px;
+  grid-template-areas:"identity life" "stats stats";
+  gap:5px 8px;
+  padding:7px 8px;
+}
+#gameScreen .header .character-card-head {
+  grid-area:identity;
+  gap:11px;
+  padding:0 9px 0 0;
+  border-right:1px solid rgba(151,122,65,.45);
+}
+#gameScreen .header .character-avatar {
+  width:56px; height:56px; flex-basis:56px;
+  background-size:auto 226px; background-position:-95px -39px;
+}
+#gameScreen .header .character-name { font-size:17px; }
+#gameScreen .header .character-name small { font-size:9px; }
+#gameScreen .header .character-origin { margin-top:3px; font-size:9px; }
+#gameScreen .header .character-realm { margin-top:4px; font-size:11px; }
+#gameScreen .header .character-life {
+  grid-area:life;
+  border-right:0;
+  border-bottom:1px solid rgba(151,122,65,.45);
+}
+#gameScreen .header .character-life strong { font-size:17px; }
+#gameScreen .header .character-stats {
+  grid-area:stats;
+  grid-template-columns:.85fr .95fr 1.4fr;
+  gap:5px;
+}
+#gameScreen .header .character-stat {
+  justify-content:center;
+  padding:2px 8px;
+}
+#gameScreen .header .character-stat svg { width:16px; height:16px; flex-basis:16px; }
+#gameScreen .header .character-stat strong { font-size:10px; }
+#gameScreen .header .character-stat-copy small { font-size:7px; }
+#gameScreen .header .character-position #posQi {
+  display:inline;
+  max-width:none;
+}
+#gameScreen .bars-wrap { margin-top:8px; }
+#gameScreen .menu-btn { top:14px; }
+
+@media (max-width:420px) {
+  #gameScreen .header { padding-left:13px; padding-right:13px; }
+  #gameScreen .header .character-card { grid-template-columns:minmax(0,1fr) 70px; padding:7px; }
+  #gameScreen .header .character-card-head { gap:8px; padding-right:6px; }
+  #gameScreen .header .character-avatar { width:50px; height:50px; flex-basis:50px; background-size:auto 202px; background-position:-85px -34px; }
+  #gameScreen .header .character-name { font-size:15px; }
+  #gameScreen .header .character-origin { font-size:8px; }
+  #gameScreen .header .character-realm { font-size:10px; }
+  #gameScreen .header .character-stat { padding:2px 4px; }
+}
+
+@media (max-height:800px) {
+  #gameScreen .header { min-height:181px; padding-top:8px; padding-bottom:8px; }
+  #gameScreen .header h1 { margin-bottom:5px; line-height:1.2; }
+  #gameScreen .header .character-card {
+    height:92px;
+    grid-template-rows:52px 28px;
+    padding:5px 7px;
+    gap:4px 7px;
+  }
+  #gameScreen .header .character-avatar { width:46px; height:46px; flex-basis:46px; background-size:auto 186px; background-position:-78px -32px; }
+  #gameScreen .header .character-name { font-size:14px; }
+  #gameScreen .header .character-origin { font-size:8px; }
+  #gameScreen .header .character-realm { font-size:9px; }
+  #gameScreen .header .character-life strong { font-size:14px; }
+  #gameScreen .header .character-stat { min-height:0; }
+  #gameScreen .bars-wrap { margin-top:5px; }
+}
+
+@media (max-height:650px) {
+  #gameScreen .header { min-height:171px; }
+  #gameScreen .header .character-card { height:86px; grid-template-rows:48px 26px; }
+  #gameScreen .header .character-avatar { width:42px; height:42px; flex-basis:42px; background-size:auto 170px; background-position:-72px -29px; }
+}
+
+/* 成品稿还原：九宫格主框 + 宣纸日志 + 墨玉控件。 */
+#gameScreen .header .character-card {
+  border:9px solid transparent;
+  border-image-source:url('assets/ui-jade-frame-9slice.png');
+  border-image-slice:145 fill;
+  border-image-width:9px;
+  border-image-repeat:stretch;
+  background:linear-gradient(90deg,rgba(22,42,34,.96),rgba(14,30,25,.94));
+  box-shadow:0 3px 10px rgba(0,0,0,.28);
+}
+.activity-panel {
+  border:12px solid transparent;
+  border-image-source:url('assets/ui-jade-frame-9slice.png');
+  border-image-slice:145 fill;
+  border-image-width:12px;
+  border-image-repeat:stretch;
+  outline:0;
+  background-clip:padding-box;
+  box-shadow:0 7px 18px rgba(0,0,0,.32);
+}
+.activity-panel::before { inset:1px; border-color:rgba(213,177,101,.38); }
+.activity-scene-label {
+  top:16px; left:16px;
+  padding:4px 10px;
+  color:#f2dfad;
+  border:1px solid rgba(196,155,78,.66);
+  border-left-width:3px;
+  background:linear-gradient(90deg,rgba(18,43,35,.92),rgba(18,43,35,.66));
+  text-shadow:1px 1px #172018;
+}
+.log-title {
+  margin:0 10px;
+  padding:10px 0 8px;
+  color:#e6c372;
+  background:linear-gradient(90deg,#14231d,#254235,#14231d);
+  border-left:1px solid #8d713d;
+  border-right:1px solid #8d713d;
+}
+#gameScreen .log-area {
+  margin:0 10px;
+  padding:20px 22px 22px;
+  border:12px solid transparent;
+  border-image-source:url('assets/ui-jade-frame-9slice.png');
+  border-image-slice:145 fill;
+  border-image-width:12px;
+  border-image-repeat:stretch;
+  outline:0;
+  background:
+    linear-gradient(rgba(246,235,205,.93),rgba(225,211,177,.96)),
+    repeating-linear-gradient(0deg,transparent 0 7px,rgba(92,71,36,.035) 7px 8px);
+  scrollbar-color:#8c713e #d9caa6;
+}
+#gameScreen .log-entry {
+  min-height:52px;
+  padding:10px 13px;
+  color:#252a24;
+  background:rgba(255,250,229,.48);
+  border:1px solid rgba(107,88,50,.13);
+  border-left:4px solid #6ca9a0;
+  box-shadow:none;
+  font-weight:600;
+  text-shadow:none;
+}
+#gameScreen .log-entry.system { color:#315e5b; }
+#gameScreen .log-entry .npc-name { color:#8b5d1f; }
+#gameScreen .log-entry .player-name { color:#2e6660; }
+#gameScreen .log-entry .dialogue { color:#29291f; }
+#gameScreen .log-entry .realm-text { color:#39736b; }
+.world-year-bar {
+  color:#efe1bc;
+  background:linear-gradient(90deg,#102019,#274234,#102019);
+  border-color:#81683b;
+}
+#gameScreen .actions {
+  background:linear-gradient(180deg,#16291f,#101b16);
+  box-shadow:inset 0 2px #846b3e,inset 0 -2px #846b3e;
+}
+#gameScreen .btn {
+  border-color:#aa8846;
+  color:#f0cc78;
+  background:
+    radial-gradient(circle at 85% 20%,rgba(119,155,126,.12),transparent 35%),
+    linear-gradient(180deg,#2d5544,#1d3d32);
+  box-shadow:inset 0 0 0 2px rgba(10,24,19,.75),inset 0 0 0 3px rgba(183,147,73,.13),0 3px 0 #09110e;
+}
+#gameScreen .btn::after {
+  content:"";
+  position:absolute; inset:3px;
+  border:1px solid rgba(219,181,99,.16);
+  pointer-events:none;
+}
+#gameScreen .btn:disabled {
+  background:linear-gradient(180deg,#2a312d,#1c2320);
+  color:#6e756a;
+  border-color:#555749;
+}
+.quick-nav {
+  background:linear-gradient(180deg,#12231c,#0b1511);
+  border-top-color:#9b7d43;
+}
+.quick-nav-btn {
+  color:#e4d4ae;
+  border-color:#8f7440;
+  background:linear-gradient(180deg,#214438,#142d25);
+  box-shadow:inset 0 0 0 2px #0c1914,inset 0 0 0 3px rgba(184,148,75,.16);
+}
+.quick-nav-icon { color:#dfbf72; filter:drop-shadow(1px 1px 0 #332914); }
+
+@media (max-height:800px) {
+  #gameScreen .log-area { padding:13px 16px 15px; border-width:9px; border-image-width:9px; }
+  #gameScreen .log-entry { min-height:38px; padding:6px 9px; }
+  .activity-panel { border-width:9px; border-image-width:9px; }
+  #gameScreen .header .character-card { border-width:7px; border-image-width:7px; }
+}
+
+/* 装饰降噪：祥云只用于章节点缀，功能容器改为克制的直线框。 */
+#gameScreen .header .character-card {
+  border:1px solid #9a7b43;
+  border-image:none;
+  outline:1px solid rgba(201,167,91,.16);
+  outline-offset:-4px;
+}
+.activity-panel {
+  border:1px solid #a08349;
+  border-image:none;
+  outline:1px solid rgba(211,181,104,.32);
+  outline-offset:-6px;
+}
+#gameScreen .log-area {
+  border:1px solid #907441;
+  border-image:none;
+  outline:1px solid rgba(93,78,48,.2);
+  outline-offset:-6px;
+}
+#gameScreen .header .character-card::before,
+.activity-panel > .activity-scene-label::before,
+#gameScreen .log-area::before { content:none; }
+#gameScreen .btn {
+  border:1px solid #9b7c42;
+  clip-path:polygon(3px 0,calc(100% - 3px) 0,100% 3px,100% calc(100% - 3px),calc(100% - 3px) 100%,3px 100%,0 calc(100% - 3px),0 3px);
+}
+#gameScreen .btn::after { inset:3px; border-color:rgba(222,190,113,.13); }
+.quick-nav-btn {
+  clip-path:polygon(3px 0,calc(100% - 3px) 0,100% 3px,100% calc(100% - 3px),calc(100% - 3px) 100%,3px 100%,0 calc(100% - 3px),0 3px);
+}
+
+@media (max-height:800px) {
+  #gameScreen .log-area,.activity-panel,#gameScreen .header .character-card { border-width:1px; }
+}
+
+/* 无祥云材质框：墨玉与旧铜的九宫格，保留纹理但不堆装饰。 */
+#gameScreen .header .character-card {
+  border:8px solid transparent;
+  border-image:url('assets/ui-jade-frame-minimal-9slice.png') 86 fill / 8px / 0 stretch;
+  outline:0;
+}
+.activity-panel {
+  border:10px solid transparent;
+  border-image:url('assets/ui-jade-frame-minimal-9slice.png') 86 fill / 10px / 0 stretch;
+  outline:0;
+}
+#gameScreen .log-area {
+  border:10px solid transparent;
+  border-image:url('assets/ui-jade-frame-minimal-9slice.png') 86 fill / 10px / 0 stretch;
+  outline:0;
+}
+@media (max-height:800px) {
+  #gameScreen .header .character-card { border-width:6px; border-image-width:6px; }
+  .activity-panel,#gameScreen .log-area { border-width:7px; border-image-width:7px; }
+}
+
+/* 视觉稿比例与组件层级：以完整页面为单位还原，而非局部换框。 */
+#gameScreen .header h1 {
+  font-family:"STKaiti","KaiTi","Kaiti SC",serif;
+  font-size:32px;
+  font-weight:900;
+  letter-spacing:12px;
+  color:#f2cf78;
+  text-shadow:2px 2px 0 #493719,0 0 9px rgba(218,177,87,.24);
+}
+.activity-panel {
+  height:32vh;
+  min-height:300px;
+  max-height:420px;
+  margin-top:8px;
+}
+.log-title {
+  min-height:42px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-family:"STKaiti","KaiTi",serif;
+  font-size:17px;
+  letter-spacing:7px;
+}
+#gameScreen .log-area {
+  flex:1 1 auto;
+  min-height:170px;
+  gap:10px;
+}
+#gameScreen .log-entry {
+  align-items:flex-start;
+  min-height:56px;
+  font-size:13px;
+  line-height:1.65;
+}
+.world-year-bar {
+  min-height:42px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-family:"STKaiti","KaiTi",serif;
+  font-size:15px;
+  font-weight:700;
+  letter-spacing:4px;
+}
+#gameScreen .actions { padding:12px 18px 15px; }
+#gameScreen .btn-row { gap:10px; margin-bottom:9px; }
+#gameScreen .btn {
+  min-height:62px;
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  gap:15px;
+  padding:8px 18px;
+  font-family:"STKaiti","KaiTi",serif;
+  font-size:18px;
+  letter-spacing:2px;
+  text-align:left;
+}
+#gameScreen .btn::before { display:none!important; content:none!important; }
+.action-icon {
+  width:30px;
+  height:30px;
+  flex:0 0 30px;
+  fill:#e6cb83;
+  filter:drop-shadow(1px 1px 0 #3a2d18);
+  shape-rendering:crispEdges;
+}
+#gameScreen .btn > span { flex:1; text-align:center; padding-right:45px; }
+#gameScreen .btn:disabled .action-icon { fill:#626d64; filter:none; }
+.quick-nav { min-height:78px; padding:7px 8px calc(8px + env(safe-area-inset-bottom)); }
+.quick-nav-btn { min-height:64px; font-size:12px; }
+.quick-nav-icon { width:28px; height:28px; }
+
+@media (max-height:1000px) {
+  .activity-panel { min-height:235px; height:29vh; max-height:300px; }
+  #gameScreen .log-area { min-height:95px; }
+  #gameScreen .btn { min-height:51px; font-size:15px; }
+  .action-icon { width:24px; height:24px; flex-basis:24px; }
+  #gameScreen .btn > span { padding-right:39px; }
+  .quick-nav { min-height:58px; }
+}
+
+@media (max-height:800px) {
+  #gameScreen .header h1 { font-size:24px; letter-spacing:9px; }
+  .activity-panel { min-height:176px; height:24vh; max-height:190px; }
+  .log-title { min-height:31px; font-size:13px; letter-spacing:4px; }
+  #gameScreen .log-area { min-height:42px; }
+  #gameScreen .log-entry { min-height:34px; font-size:11px; line-height:1.5; }
+  .world-year-bar { min-height:25px; font-size:11px; }
+  #gameScreen .actions { padding:6px 12px 7px; }
+  #gameScreen .btn-row { gap:6px; margin-bottom:5px; }
+  #gameScreen .btn { min-height:39px; gap:8px; padding:5px 10px; font-size:13px; }
+  .action-icon { width:20px; height:20px; flex-basis:20px; }
+  #gameScreen .btn > span { padding-right:28px; }
+  .quick-nav { min-height:50px; }
+}
+
+/* 500×1257 竖屏按效果稿实测比例校准。 */
+@media (min-height:1001px) {
+  #gameScreen .header {
+    flex:0 0 248px;
+    min-height:248px;
+    padding:8px 20px 9px;
+  }
+  #gameScreen .header h1 {
+    height:52px;
+    margin:0 0 5px;
+    font-size:34px;
+    line-height:52px;
+  }
+  #gameScreen .header .character-card {
+    height:126px;
+    grid-template-columns:minmax(0,1fr) 92px;
+    grid-template-rows:74px 38px;
+    gap:5px 8px;
+    padding:7px 8px;
+    border:7px solid transparent;
+    border-image:url('assets/ui-jade-frame-minimal-9slice.png') 86 / 7px / 0 stretch;
+  }
+  #gameScreen .header .character-avatar {
+    width:66px; height:66px; flex-basis:66px;
+    background-size:auto 266px; background-position:-112px -46px;
+  }
+  #gameScreen .header .character-name { font-size:18px; }
+  #gameScreen .header .character-origin { font-size:10px; }
+  #gameScreen .header .character-realm { font-size:12px; }
+  #gameScreen .header .character-life strong { font-size:19px; }
+  #gameScreen .header .character-stat svg { width:19px; height:19px; flex-basis:19px; }
+  #gameScreen .header .character-stat strong { font-size:12px; }
+  #gameScreen .header .character-stat-copy small { font-size:8px; }
+  #gameScreen .bars-wrap { height:50px; margin-top:6px; gap:6px; }
+  #gameScreen .progress-bar { height:20px; }
+  #gameScreen .progress-text { font-size:11px; }
+
+  .activity-panel {
+    flex:0 0 417px;
+    width:auto;
+    height:417px;
+    min-height:417px;
+    max-height:417px;
+    margin:0;
+    border:0;
+    border-image:none;
+    outline:0;
+    background-position:center;
+  }
+  .activity-panel::before { inset:6px; border-color:rgba(211,181,104,.34); }
+  .activity-scene-label { top:16px; left:17px; }
+
+  .log-title {
+    flex:0 0 49px;
+    min-height:49px;
+    margin:0;
+  }
+  #gameScreen .log-area {
+    flex:0 0 150px;
+    min-height:150px;
+    max-height:150px;
+    margin:0 10px;
+    padding:14px 18px;
+    gap:10px;
+    border:6px solid transparent;
+    border-image:url('assets/ui-jade-frame-minimal-9slice.png') 86 / 6px / 0 stretch;
+  }
+  #gameScreen .log-entry {
+    flex:1 1 0;
+    min-height:0;
+    padding:8px 12px;
+    font-size:12px;
+  }
+  .world-year-bar {
+    flex:0 0 40px;
+    min-height:40px;
+    padding:0;
+  }
+  #gameScreen .actions {
+    flex:0 0 239px;
+    min-height:239px;
+    max-height:239px;
+    padding:13px 18px 14px;
+  }
+  #gameScreen .btn-row { gap:10px; margin-bottom:9px; }
+  #gameScreen .btn { min-height:62px; }
+  .quick-nav {
+    flex:0 0 112px;
+    min-height:112px;
+    padding:8px 8px calc(8px + env(safe-area-inset-bottom));
+  }
+  .quick-nav-btn { min-height:94px; font-size:13px; }
+  .quick-nav-icon { width:32px; height:32px; }
+}
+
+/* 专用美术组件接入：不再用通用渐变模拟成品 UI。 */
+#gameScreen .header .character-card {
+  border:0;
+  border-image:none;
+  outline:0;
+  background-color:#15382c;
+  background-image:url('assets/ui-status-jade-panel.png');
+  background-size:100% 100%;
+  background-repeat:no-repeat;
+  box-shadow:0 4px 12px rgba(0,0,0,.38);
+}
+#gameScreen .header .character-card-head {
+  border-right-color:rgba(222,187,105,.42);
+}
+#gameScreen .header .character-life {
+  border-bottom-color:rgba(222,187,105,.42);
+}
+#gameScreen .header .character-stat {
+  border-color:rgba(216,181,96,.5);
+  background:rgba(5,25,20,.38);
+  box-shadow:inset 0 0 8px rgba(0,0,0,.16);
+}
+#gameScreen .header .character-avatar {
+  border:2px solid #cfaa58;
+  box-shadow:0 0 0 2px #13271f,inset 0 0 8px rgba(0,0,0,.2);
+}
+#gameScreen .log-area {
+  background-color:#eadcbc;
+  background-image:linear-gradient(rgba(248,239,214,.25),rgba(225,210,177,.08)),url('assets/ui-log-paper-v1.png');
+  background-size:cover;
+  background-position:center bottom;
+  background-repeat:no-repeat;
+}
+#gameScreen .log-entry {
+  background:rgba(255,250,232,.54);
+  border-color:rgba(109,82,40,.1);
+}
+#gameScreen .btn {
+  border:0;
+  background-color:#174536;
+  background-image:url('assets/ui-button-jade-tile.png');
+  background-size:100% 100%;
+  background-repeat:no-repeat;
+  box-shadow:0 3px 0 #08150f,0 5px 10px rgba(0,0,0,.22);
+  clip-path:none;
+}
+#gameScreen .btn::after { content:none; }
+#gameScreen .btn:active {
+  background-image:linear-gradient(rgba(210,184,103,.12),rgba(210,184,103,.12)),url('assets/ui-button-jade-tile.png');
+  filter:brightness(1.12);
+}
+#gameScreen .btn.action-active {
+  border:0;
+  background-image:linear-gradient(rgba(108,207,184,.14),rgba(108,207,184,.14)),url('assets/ui-button-jade-tile.png');
+}
+#gameScreen .btn:disabled {
+  background-image:linear-gradient(rgba(13,18,16,.56),rgba(13,18,16,.56)),url('assets/ui-button-jade-tile.png');
+  filter:grayscale(.8) saturate(.35);
+  opacity:.72;
+}
+.quick-nav-btn {
+  border:0;
+  background-color:#143c30;
+  background-image:url('assets/ui-nav-jade-v1.png');
+  background-size:100% 100%;
+  background-repeat:no-repeat;
+  clip-path:none;
+  box-shadow:0 2px 0 #07120e;
+}
+.quick-nav-btn::before,.quick-nav-btn::after { content:none; }
+.quick-nav-btn.is-active {
+  border:0;
+  background-image:linear-gradient(rgba(94,208,193,.13),rgba(94,208,193,.13)),url('assets/ui-nav-jade-v1.png');
+}
+
+/* 六个主操作使用独立场景暗纹，避免复制粘贴感。 */
+#gameScreen [data-action="map"] { --action-bg:url('assets/ui-action-map.png'); }
+#gameScreen [data-action="explore"] { --action-bg:url('assets/ui-action-explore.png'); }
+#gameScreen [data-action="rest"] { --action-bg:url('assets/ui-action-rest.png'); }
+#gameScreen [data-action="meditate"] { --action-bg:url('assets/ui-action-meditate.png'); }
+#gameScreen [data-action="breakthrough"] { --action-bg:url('assets/ui-action-breakthrough.png'); }
+#gameScreen [data-action="time"] { --action-bg:url('assets/ui-action-time.png'); }
+#gameScreen .btn[data-action] {
+  background-image:var(--action-bg);
+  background-size:100% 100%;
+}
+#gameScreen .btn[data-action]:active,
+#gameScreen .btn[data-action].action-active {
+  background-image:linear-gradient(rgba(119,215,192,.13),rgba(119,215,192,.13)),var(--action-bg);
+}
+#gameScreen .btn[data-action]:disabled {
+  background-image:linear-gradient(rgba(17,23,20,.36),rgba(17,23,20,.36)),var(--action-bg);
+}
+
+/* 截图验收修正：内容安全区、场景框、禁用态与误触发滚动。 */
+@media (min-height:1001px) {
+  #gameScreen .header .character-card {
+    height:124px;
+    grid-template-rows:66px 34px;
+    gap:4px 8px;
+    padding:10px 14px;
+    overflow:hidden;
+  }
+  #gameScreen .header .character-card-head {
+    height:66px;
+    padding-right:12px;
+  }
+  #gameScreen .header .character-avatar {
+    width:58px; height:58px; flex-basis:58px;
+    background-size:auto 234px; background-position:-99px -40px;
+  }
+  #gameScreen .header .character-life { height:66px; }
+  #gameScreen .header .character-stats { height:34px; }
+  #gameScreen .header .character-stat { height:34px; padding:2px 7px; }
+
+  .activity-panel {
+    flex-basis:417px;
+    height:417px;
+    min-height:417px;
+    max-height:417px;
+    border:5px solid transparent;
+    border-image:url('assets/ui-jade-frame-minimal-9slice.png') 86 / 5px / 0 stretch;
+    background-clip:padding-box;
+  }
+  .activity-panel::before { inset:1px; }
+
+  #gameScreen .actions {
+    flex:0 0 auto;
+    min-height:0;
+    max-height:none;
+    height:auto;
+    overflow-y:visible;
+    padding-bottom:9px;
+  }
+  #gameScreen #mainActions .btn-row:nth-child(3) { margin-bottom:0; }
+  .quick-nav {
+    flex-basis:105px;
+    min-height:105px;
+    padding-top:5px;
+  }
+  .quick-nav-btn { min-height:90px; }
+}
+
+#gameScreen .btn[data-action]:disabled {
+  filter:grayscale(.58) saturate(.5) brightness(.72);
+  opacity:.82;
+}
+
+/* 2026-09-17 视觉验收修正：完整状态框、切图线框按钮、底栏不再被动作区挤出。 */
+#gameScreen .header .character-card {
+  border:5px solid transparent;
+  border-image:url('assets/ui-status-jade-panel-v2.png') 58 58 fill / 5px / 0 stretch;
+  background-image:none;
+  background-color:#122d25;
+  box-shadow:0 4px 12px rgba(0,0,0,.38);
+}
+
+/* 主操作统一使用同一套美术边框；只拉伸边线，中部不参与九宫格绘制。 */
+#gameScreen .btn,
+#gameScreen .btn[data-action],
+#gameScreen .btn[data-action]:active,
+#gameScreen .btn[data-action].action-active,
+#gameScreen .btn[data-action]:disabled {
+  border:6px solid transparent;
+  border-image:url('assets/ui-frame-9slice-master-v1.png') 78 / 6px / 0 stretch;
+  background-color:#101713;
+  background-image:linear-gradient(rgba(5,16,13,.24),rgba(5,16,13,.38)),var(--action-bg,linear-gradient(135deg,#15231d,#0d1713));
+  background-size:cover;
+  background-position:center;
+  background-repeat:no-repeat;
+  clip-path:none;
+  overflow:hidden;
+  padding:5px 12px;
+  line-height:1;
+  white-space:nowrap;
+  box-shadow:0 3px 0 #07110e,0 5px 10px rgba(0,0,0,.2);
+}
+#gameScreen .btn::before {
+  content:none;
+}
+#gameScreen .btn[data-action]:active,
+#gameScreen .btn[data-action].action-active {
+  background-color:#101713;
+  background-image:linear-gradient(rgba(58,123,99,.12),rgba(5,16,13,.22)),var(--action-bg,linear-gradient(135deg,#15231d,#0d1713));
+  filter:brightness(1.08);
+}
+#gameScreen .btn[data-action]:disabled {
+  background-color:#111512;
+  background-image:linear-gradient(rgba(8,12,10,.62),rgba(8,12,10,.7)),var(--action-bg,linear-gradient(135deg,#151a17,#0e120f));
+  color:#7f8277;
+  filter:grayscale(.28) brightness(.72);
+  opacity:.72;
+}
+#gameScreen .btn:not(:has(.action-icon)) > span {
+  padding-right:0;
+}
+#gameScreen .btn > span {
+  min-width:0;
+  white-space:nowrap;
+  word-break:keep-all;
+}
+
+@media (min-height:1001px) {
+  #gameScreen .header .character-card {
+    height:124px;
+    grid-template-rows:60px 34px;
+    gap:4px 8px;
+    padding:8px 12px;
+    overflow:hidden;
+  }
+  #gameScreen .header .character-card-head {
+    height:60px;
+    padding-right:10px;
+    padding-bottom:0;
+  }
+  #gameScreen .header .character-avatar {
+    width:52px;
+    height:52px;
+    flex-basis:52px;
+    background-size:auto 210px;
+    background-position:-89px -36px;
+  }
+  #gameScreen .header .character-life {
+    height:60px;
+    min-height:0;
+  }
+  #gameScreen .header .character-stats {
+    height:34px;
+  }
+  #gameScreen .header .character-stat {
+    height:34px;
+    min-height:0;
+    padding:2px 7px;
+  }
+  #gameScreen .actions {
+    flex:1 1 0;
+    height:auto;
+    min-height:0;
+    max-height:none;
+    overflow-y:auto;
+    padding:10px 18px;
+    scrollbar-width:none;
+  }
+  #gameScreen .actions::-webkit-scrollbar {
+    display:none;
+    width:0;
+    height:0;
+  }
+  #gameScreen #mainActions:not(.hidden) {
+    display:flex;
+    flex-direction:column;
+    min-height:100%;
+    gap:8px;
+  }
+  #gameScreen #mainActions > .btn-row {
+    flex:1 1 0;
+    min-height:0;
+    margin:0;
+  }
+  #gameScreen #mainActions > .btn-row.hidden {
+    display:none !important;
+  }
+  #gameScreen #mainActions > .btn-row .btn {
+    height:100%;
+    min-height:48px;
+  }
+  .quick-nav {
+    flex:0 0 100px;
+    min-height:100px;
+    padding:5px 8px calc(7px + env(safe-area-inset-bottom));
+  }
+  .quick-nav-btn {
+    min-height:84px;
+  }
+}
+
+/* 真透明边框：场景图不再被带底色的完整面板切图遮盖。 */
+.activity-panel {
+  border:8px solid transparent;
+  border-image:url('assets/ui-frame-9slice-master-v1.png') 78 / 8px / 0 stretch;
+  outline:0;
+  background-clip:padding-box;
+  box-shadow:none;
+}
+.activity-panel::before {
+  content:none;
+}
+
+/* 动作区与底栏只承担排版，不再叠整块绿底或黑色阴影条。 */
+#gameScreen .actions {
+  background:transparent;
+  border-top:1px solid rgba(167,132,64,.5);
+  border-bottom:0;
+  box-shadow:none;
+}
+.quick-nav {
+  background:rgba(12,22,18,.72);
+  border-top:1px solid rgba(181,143,70,.7);
+  box-shadow:none;
+}
+.quick-nav::before {
+  content:none;
+}
+
+/* 六张动作图自带完整金框：保持源图 2048×569 比例，禁止再叠九宫格。 */
+#gameScreen .btn[data-action],
+#gameScreen .btn[data-action]:active,
+#gameScreen .btn[data-action].action-active,
+#gameScreen .btn[data-action]:disabled {
+  width:100%;
+  height:auto;
+  min-height:0;
+  aspect-ratio:2048 / 569;
+  border:0;
+  border-image:none;
+  padding:6px 18px;
+  background-color:transparent;
+  background-image:var(--action-bg);
+  background-size:100% 100%;
+  background-position:center;
+  background-repeat:no-repeat;
+  box-shadow:none;
+}
+#gameScreen .btn[data-action]:active,
+#gameScreen .btn[data-action].action-active {
+  background-image:var(--action-bg);
+  filter:brightness(1.12);
+}
+#gameScreen .btn[data-action]:disabled {
+  background-image:var(--action-bg);
+  filter:grayscale(.72) brightness(.48);
+  opacity:.72;
+}
+#gameScreen .btn[data-action="map"] {
+  background-size:104% 100%;
+}
+
+@media (min-height:1001px) {
+  #gameScreen .actions {
+    padding-top:6px;
+    padding-bottom:6px;
+  }
+  #gameScreen #mainActions:not(.hidden) {
+    min-height:0;
+    gap:5px;
+  }
+  #gameScreen #mainActions > .btn-row {
+    flex:0 0 auto;
+    margin:0;
+  }
+  #gameScreen #mainActions > .btn-row .btn[data-action] {
+    height:auto;
+    min-height:0;
+  }
+  #gameScreen #mainActions > .btn-row:not(:has(.btn[data-action])) .btn {
+    min-height:42px;
+  }
+}
+
+/* 历练记录按纸张安全区排版：条目不再被 flex 压扁到分隔线上。 */
+#gameScreen .log-area {
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+  justify-content:flex-start;
+  overflow-y:auto;
+  padding:16px 24px 14px;
+  gap:5px;
+  scrollbar-width:thin;
+  scrollbar-color:rgba(151,116,53,.7) transparent;
+}
+#gameScreen .log-entry {
+  flex:0 0 auto;
+  width:100%;
+  min-height:30px;
+  margin:0;
+  padding:5px 10px 5px 12px;
+  box-sizing:border-box;
+  display:block;
+  line-height:20px;
+  text-align:left;
+  background:rgba(255,250,232,.42);
+}
+#gameScreen .log-entry + .log-entry {
+  margin-top:0;
+}
+
+@media (min-height:1001px) {
+  #gameScreen .log-area {
+    padding:16px 24px 14px;
+    gap:5px;
+  }
+  #gameScreen .log-entry {
+    min-height:30px;
+    padding:5px 10px 5px 12px;
+    line-height:20px;
+  }
+}
+
+/* 日志条目使用真正的磨砂纸底，提高文字对比但保留宣纸纹理。 */
+#gameScreen .log-entry {
+  background:rgba(244,236,211,.76);
+  -webkit-backdrop-filter:blur(6px) saturate(.82);
+  backdrop-filter:blur(6px) saturate(.82);
+  border:1px solid rgba(116,91,48,.13);
+  border-left:3px solid #5fb9b5;
+  box-shadow:inset 0 1px rgba(255,255,255,.34),0 1px 2px rgba(73,56,30,.08);
+  color:#29483f;
+}
+
+/* 场景图缩短约 1/3；完整原图置于上层，模糊副本只填补留白。 */
+.activity-panel {
+  flex:0 0 clamp(180px,22vh,280px);
+  height:clamp(180px,22vh,280px);
+  min-height:180px;
+  max-height:280px;
+  background-color:#101a16;
+  background-image:none;
+  isolation:isolate;
+}
+.activity-panel::before,
+.activity-panel::after {
+  content:'';
+  position:absolute;
+  pointer-events:none;
+  background-image:var(--activity-scene-bg);
+  background-repeat:no-repeat;
+}
+.activity-panel::before {
+  z-index:0;
+  inset:-10px;
+  background-size:cover;
+  background-position:left center;
+  filter:blur(10px) brightness(.55) saturate(.8);
+  opacity:.72;
+}
+.activity-panel::after {
+  z-index:1;
+  inset:7px;
+  background-size:contain;
+  background-position:left center;
+  filter:none;
+  opacity:1;
+}
+.activity-clouds { z-index:2; }
+.activity-person-standing,.activity-person-layer { z-index:3; }
+.activity-scene-label { z-index:6; }
+
+/* 最终布局锁定：必须位于样式表末尾，防止被旧的固定高度规则覆盖。 */
+@media (min-height:1001px) {
+  #gameScreen .log-area {
+    flex:1 1 0;
+    height:auto;
+    min-height:150px;
+    max-height:none;
+  }
+  #gameScreen .actions {
+    flex:0 0 auto;
+    height:max-content;
+    min-height:0;
+    max-height:none;
+    overflow-y:visible;
+    padding-top:6px;
+    padding-bottom:6px;
+  }
+  #gameScreen #mainActions:not(.hidden) {
+    min-height:0;
+    height:auto;
+  }
+  .quick-nav {
+    flex:0 0 100px;
+    min-height:100px;
+  }
+}
+
+/* 场景构图锁定左侧：高度撑满，溢出部分只从右侧裁切。 */
+.activity-panel::before {
+  display:none;
+}
+.activity-panel::after {
+  inset:7px;
+  background-size:cover;
+  background-position:left center;
+}
+
+/* 云层保持位于背景与人物之间，并以双贴图轨道无缝循环。 */
+.activity-clouds {
+  z-index:2;
+  left:0;
+  top:0;
+  width:200%;
+  height:100%;
+  opacity:.2;
+  background-size:50% 100%,50% 100%;
+  background-position:0 50%,100% 50%;
+  animation:cloudTrack 26s linear infinite !important;
+  mix-blend-mode:screen;
+  will-change:transform;
+}
+.activity-panel[data-period="day"] .activity-clouds {
+  opacity:.22;
+  mix-blend-mode:screen;
+}
+.activity-panel[data-period="night"] .activity-clouds {
+  opacity:.16;
+  mix-blend-mode:screen;
+}
+
+/* 窄列交互按钮允许中文自然换行；六个主操作按钮仍保持单行。 */
+#gameScreen .actions .btn:not([data-action]) {
+  height:auto;
+  min-height:54px;
+  padding:8px 10px;
+  white-space:normal;
+  word-break:break-all;
+  overflow-wrap:anywhere;
+  line-height:1.35;
+  text-align:center;
+  justify-content:center;
+}
+#gameScreen .actions .btn:not([data-action]) > span {
+  padding-right:0;
+  white-space:normal;
+  word-break:break-all;
+  overflow-wrap:anywhere;
+}
+
+/* 当前位置 NPC：独立人物层，置于云层和背景之上。 */
+.activity-npc {
+  display:none;
+  position:absolute;
+  z-index:5;
+  inset:7px;
+  padding:0;
+  border:0;
+  background:transparent;
+  color:#f2d58c;
+  cursor:pointer;
+  overflow:hidden;
+  font-family:inherit;
+}
+.activity-npc.show { display:block; }
+.activity-npc-anchor {
+  position:absolute;
+  left:50%;
+  bottom:28%;
+  height:50%;
+  width:auto;
+  aspect-ratio:859 / 1831;
+}
+.activity-npc-figure {
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  background:none;
+  transform:scaleX(-1);
+  transform-origin:center bottom;
+  image-rendering:pixelated;
+}
+.activity-npc-label {
+  position:absolute;
+  left:112%;
+  top:22%;
+  right:auto;
+  bottom:auto;
+  transform:none;
+  min-width:82px;
+  padding:5px 9px;
+  border:1px solid rgba(207,168,85,.78);
+  background:rgba(10,24,19,.82);
+  -webkit-backdrop-filter:blur(4px);
+  backdrop-filter:blur(4px);
+  text-align:center;
+  line-height:1.2;
+  box-shadow:0 2px 6px rgba(0,0,0,.32);
+}
+.activity-npc-label strong {
+  display:block;
+  font-size:12px;
+  letter-spacing:1px;
+}
+.activity-npc-label small {
+  display:block;
+  margin-top:2px;
+  color:#b7cbbd;
+  font-size:9px;
+}
+
+/* 模块化站立 NPC：只保留“身体 + 头部”两层，领口遮住连接处。 */
+.npc-paperdoll {
+  position:relative;
+  display:block;
+  width:100%;
+  height:100%;
+  overflow:visible;
+  image-rendering:pixelated;
+}
+.npc-paperdoll .npc-part {
+  position:absolute;
+  inset:0;
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  object-position:center bottom;
+  pointer-events:none;
+  user-select:none;
+}
+.npc-part-body { z-index:1; }
+.npc-part-head { z-index:2; }
+.npc-card-main {
+  display:grid;
+  grid-template-columns:52px minmax(0,1fr);
+  gap:10px;
+  align-items:center;
+}
+.npc-card-avatar {
+  width:52px;
+  height:82px;
+  align-self:start;
+  overflow:hidden;
+  border:1px solid rgba(211,174,91,.62);
+  background:radial-gradient(circle at 50% 34%,rgba(86,130,105,.28),rgba(6,22,18,.9) 72%);
+  box-shadow:inset 0 0 0 2px rgba(4,17,15,.72);
+}
+.npc-card-avatar .npc-paperdoll {
+  width:74px;
+  height:96px;
+  margin:-5px 0 0 -11px;
+}
+.npc-card-copy { min-width:0; }
+.npc-card .npc-actions { margin-top:8px; }
+
+/* 场景人物信息层：头、身均为同尺寸透明画布，直接在左上角重合。 */
+.activity-npc-label {
+  left:112%;
+  top:22%;
+  right:auto;
+  transform:none;
+  min-width:86px;
+  padding:6px 10px;
+}
+.activity-npc-label::before {
+  content:'';
+  position:absolute;
+  right:100%;
+  top:50%;
+  width:12px;
+  height:1px;
+  background:linear-gradient(90deg,transparent,rgba(207,168,85,.82));
+}
+.activity-scene-label {
+  left:auto;
+  right:15px;
+  top:14px;
+  padding:0;
+  border:0;
+  background:none;
+  box-shadow:none;
+  -webkit-backdrop-filter:none;
+  backdrop-filter:none;
+  color:#f2d58c;
+  font-family:"STKaiti","Kaiti SC","KaiTi",serif;
+  font-size:24px;
+  font-weight:700;
+  line-height:1;
+  letter-spacing:4px;
+  writing-mode:vertical-rl;
+  text-orientation:upright;
+  text-shadow:0 2px 1px rgba(0,0,0,.9),0 0 7px rgba(8,18,15,.9);
+  pointer-events:none;
+}
+
+/* 顶部状态信息的可读性下限：响应式布局不得缩到 8px 以下。 */
+#gameScreen .header .character-stat-copy small,
+#gameScreen .header .character-stat > span,
+#gameScreen .header #playerFollowers,
+#gameScreen .header #playerInfamy {
+  font-size:8px;
+  line-height:1.15;
+}
+#gameScreen .header #playerFollowers,
+#gameScreen .header #playerInfamy {
+  font-size:10px;
+  font-weight:700;
+  line-height:1.1;
+}
 </style>
 </head>
 <body>
@@ -561,11 +2237,30 @@ body {
 <div id="gameScreen" class="hidden">
   <div class="header">
     <h1>修 仙 录</h1>
-    <div class="player-info">
-      <span id="playerName"></span> (<span id="playerGender"></span>) · <span id="playerOrigin"></span> · <span id="playerSect"></span> · <span id="playerRealm"></span> · 寿元 <span id="playerLife"></span>
-    </div>
-    <div class="player-res">
-      灵石 <span id="playerLingshi" class="lingshi">0</span> · 战力 <span id="playerPower" style="color:var(--blue)">0</span><span id="playerFollowers"></span> · 位置（<span id="playerPos"></span>）<span id="posQi"></span><span id="playerInfamy"></span>
+    <div class="character-card">
+      <div class="character-card-head">
+        <div class="character-avatar" aria-hidden="true"></div>
+        <div class="character-identity">
+          <div class="character-name"><span id="playerName"></span><small id="playerGender"></small></div>
+          <div class="character-origin"><span id="playerOrigin"></span><i></i><span id="playerSect"></span></div>
+          <div class="character-realm" id="playerRealm"></div>
+        </div>
+      </div>
+      <div class="character-life"><span>寿元</span><strong id="playerLife">0</strong><small>年</small></div>
+      <div class="character-stats">
+        <div class="character-stat" title="灵石">
+          <svg viewBox="0 0 24 24" aria-hidden="true" shape-rendering="crispEdges"><path d="M9 2h7v3h3v8h-2v4h-3v3H8v-3H5V9h2V5h2V2Zm1 4v9h3v-2h2V7h-2V6h-3Z"/></svg>
+          <span class="character-stat-copy"><small>灵石</small><strong id="playerLingshi">0</strong></span>
+        </div>
+        <div class="character-stat" title="战力">
+          <svg viewBox="0 0 24 24" aria-hidden="true" shape-rendering="crispEdges"><path d="M4 3h3v3h2v2h2v3H8V9H6V7H4V3Zm13 0h3v4h-2v2h-2v2h-3V8h2V6h2V3ZM9 13h6v3h-2v2h-2v-2H9v-3Zm-4 1h3v3h2v2H8v2H4v-4h2v-1H5v-2Zm11 0h3v2h-1v1h2v4h-4v-2h-2v-2h2v-3Z"/></svg>
+          <span class="character-stat-copy"><small>战力</small><strong id="playerPower">0</strong></span><span id="playerFollowers"></span>
+        </div>
+        <div class="character-stat character-position" title="位置">
+          <svg viewBox="0 0 24 24" aria-hidden="true" shape-rendering="crispEdges"><path d="M8 2h8v2h3v3h2v7h-2v3h-2v2h-2v3h-6v-3H7v-2H5v-3H3V7h2V4h3V2Zm2 5v6h4V7h-4Z"/></svg>
+          <span class="character-stat-copy"><small>当前位置</small><strong><span id="playerPos"></span><span id="posQi"></span></strong></span><span id="playerInfamy"></span>
+        </div>
+      </div>
     </div>
     <div class="bars-wrap">
       <div class="progress-bar">
@@ -577,35 +2272,50 @@ body {
         <div id="hpText" class="progress-text"></div>
       </div>
     </div>
-    <button class="menu-btn" onclick="toggleMenu(event)">&#8942;</button>
+    <button class="menu-btn" aria-label="设置" title="设置" onclick="toggleMenu(event)">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" shape-rendering="crispEdges"><path d="M9 2h6v3h3v3h3v8h-3v3h-3v3H9v-3H6v-3H3V8h3V5h3V2Zm1 6v2H8v4h2v2h4v-2h2v-4h-2V8h-4Zm1 3h2v2h-2v-2Z"/></svg>
+    </button>
     <div id="menuDropdown" class="menu-dropdown">
-      <button class="menu-item" onclick="showInventory()">背包</button>
-      <button class="menu-item" onclick="showMemory()">记忆录</button>
       <button class="menu-item" onclick="showAiSettings()">AI设置</button>
-      <button class="menu-item" onclick="exportSave()">导出存档</button>
-      <button class="menu-item" onclick="importSave()">导入存档</button>
       <button class="menu-item" onclick="restartGame()">重新开始</button>
     </div>
   </div>
 
+  <section id="activityPanel" class="activity-panel" aria-label="当前场景">
+    <div class="activity-clouds" aria-hidden="true"></div>
+    <div class="activity-aura" aria-hidden="true"></div>
+    <div class="activity-person" aria-hidden="true"></div>
+    <div class="activity-person-standing" aria-hidden="true"></div>
+    <button class="activity-npc" id="activityNpc" type="button" onclick="showNpcHere()" aria-label="查看附近人物">
+      <span class="activity-npc-anchor">
+        <span class="activity-npc-figure" aria-hidden="true"></span>
+        <span class="activity-npc-label"><strong id="activityNpcName"></strong><small id="activityNpcRealm"></small></span>
+      </span>
+    </button>
+    <div class="activity-scene-label" id="activityScene">荒芜之地</div>
+    <div class="activity-runtime" aria-hidden="true">
+      <span id="activityTitle">初入仙途</span><span id="activitySubtitle">静观天地，择路而行</span><span id="activityPeriod">第 1 / 1 年</span><span id="activityTime">修仙历 1 年</span><span id="activityGain">状态安稳</span><i id="activityProgress"></i><button id="activityStop" type="button" onclick="game.setActivity('idle')">结束行动</button>
+    </div>
+  </section>
+  <div class="log-title">历 练 记 录</div>
   <div id="logArea" class="log-area"></div>
 
-  <div style="text-align:center;font-size:11px;color:var(--text-dim);padding:3px 0;background:var(--bg-light);border-top:1px solid rgba(255,255,255,0.05)">
+  <div class="world-year-bar">
     修仙历 <span id="worldYear">1</span> 年
   </div>
   <div class="actions">
     <div id="mainActions">
       <div class="btn-row">
-        <button class="btn" onclick="showMap()">打开地图</button>
-        <button class="btn" onclick="game.doExplore()">探索</button>
+        <button class="btn" data-action="map" onclick="showMap();game.setActivity('map')"><svg class="action-icon" viewBox="0 0 24 24"><path d="M3 5l6-2 6 2 6-2v16l-6 2-6-2-6 2V5zm6 1L6 7v10l3-1V6zm3 0v10l3 1V7l-3-1zm6 0v10l1-.3V5.7L18 6z"/></svg><span>打开地图</span></button>
+        <button class="btn" data-action="explore" onclick="game.doExplore()"><svg class="action-icon" viewBox="0 0 24 24"><path d="M14.8 3l6.2 6.2-4.5 7.3-7.3 4.5L3 14.8l4.5-7.3L14.8 3zm-.9 4.1l-3.5 3.3-3.3 3.5 3 3 3.5-3.3 3.3-3.5-3-3z"/></svg><span>探索</span></button>
       </div>
       <div class="btn-row">
-        <button class="btn" onclick="game.rest()">修整</button>
-        <button class="btn" onclick="game.meditate()">闭关修炼</button>
+        <button class="btn" data-action="rest" onclick="game.rest()"><svg class="action-icon" viewBox="0 0 24 24"><path d="M5 5h14v3H5V5zm-2 5h18v3H3v-3zm3 5h12v5H6v-5zm3 1v2h6v-2H9z"/></svg><span>修整</span></button>
+        <button class="btn" data-action="meditate" onclick="game.meditate()"><svg class="action-icon" viewBox="0 0 24 24"><path d="M10 3h4v4h-4V3zM8 9h8l2 4-3 2 4 5h-5l-2-3-2 3H5l4-5-3-2 2-4zm2 2l-1 2 3 2 3-2-1-2h-4z"/></svg><span>闭关修炼</span></button>
       </div>
       <div class="btn-row">
-        <button id="btnBreakthrough" class="btn" onclick="game.tryBreakthrough()">尝试突破</button>
-        <button class="btn" onclick="game.advanceTime()">推进时间</button>
+        <button id="btnBreakthrough" class="btn" data-action="breakthrough" onclick="game.tryBreakthrough()"><svg class="action-icon" viewBox="0 0 24 24"><path d="M12 2l4 5-2 2 5 7h-5v6h-4v-6H5l5-7-2-2 4-5z"/></svg><span>尝试突破</span></button>
+        <button class="btn" data-action="time" onclick="game.advanceTime()"><svg class="action-icon" viewBox="0 0 24 24"><path d="M6 2h12v3l-4 5 4 5v7H6v-7l4-5-4-5V2zm3 3l3 4 3-4H9zm3 6l-3 5v3h6v-3l-3-5z"/></svg><span>推进时间</span></button>
       </div>
       <div class="btn-row hidden" id="marketBtnRow">
         <button class="btn btn-purple" onclick="showMarket()" style="grid-column:1/-1">进入坊市</button>
@@ -623,10 +2333,16 @@ body {
     <div id="dialogueActions" class="hidden"></div>
     <div id="encounterActions" class="hidden"></div>
   </div>
+  <nav class="quick-nav" aria-label="常用功能">
+    <button class="quick-nav-btn" data-nav="inventory" onclick="showInventory()" aria-label="背包"><svg class="quick-nav-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 4h8v4h3v13H5V8h3V4Zm2 2v2h4V6h-4ZM7 11v2h10v-2H7Zm2 5v3h2v-3H9Z"/></svg><span>背包</span></button>
+    <button class="quick-nav-btn" data-nav="memory" onclick="showMemory()" aria-label="记忆录"><svg class="quick-nav-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M5 3h14v18H5V3Zm3 2v14h2V5H8Zm5 3h4V6h-4v2Zm0 4h4v-2h-4v2Zm0 4h4v-2h-4v2Z"/></svg><span>记忆录</span></button>
+    <button class="quick-nav-btn" data-nav="status" onclick="showPlayerStatus()" aria-label="角色状态"><svg class="quick-nav-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M9 3h6v6H9V3Zm-2 8h10v2h2v8H5v-8h2v-2Zm2 2v2H7v4h10v-4h-2v-2H9Z"/></svg><span>角色</span></button>
+    <button class="quick-nav-btn" data-nav="save" onclick="showSaveCenter()" aria-label="存档"><svg class="quick-nav-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M4 3h14l2 2v16H4V3Zm3 2v6h10V5H7Zm2 2h5v2H9V7Zm-2 7v5h10v-5H7Zm2 2h6v3H9v-3Z"/></svg><span>存档</span></button>
+  </nav>
 </div>
 
 <div id="mapModal" class="modal-overlay" onclick="if(event.target===this)closeMap()">
-  <div class="modal" style="max-width:420px">
+  <div class="modal map-modal">
     <div class="modal-header">
       <h3>天地图</h3>
       <button class="modal-close" onclick="closeMap()">✕</button>
@@ -646,6 +2362,7 @@ body {
           <span><i class="legend-dot" style="background:var(--red);border-radius:50%"></i>NPC</span>
         </div>
         <div class="map-grid" id="mapGrid"></div>
+        <div class="map-hint">点击金边区域前往 · 每格消耗一年寿元</div>
       </div>
     </div>
   </div>
@@ -700,6 +2417,23 @@ body {
     <div id="memoryBody" class="modal-body"></div>
     <div id="memoryGraph" class="hidden graph-viewport">
       <canvas id="relationCanvas" width="1200" height="1000"></canvas>
+    </div>
+  </div>
+</div>
+
+<div id="playerStatusModal" class="modal-overlay" onclick="if(event.target===this)closePlayerStatus()">
+  <div class="modal status-sheet">
+    <div class="modal-header"><h3>角色状态</h3><button class="modal-close" onclick="closePlayerStatus()">✕</button></div>
+    <div class="modal-body" id="playerStatusBody"></div>
+  </div>
+</div>
+
+<div id="saveCenterModal" class="modal-overlay" onclick="if(event.target===this)closeSaveCenter()">
+  <div class="modal save-sheet">
+    <div class="modal-header"><h3>存档</h3><button class="modal-close" onclick="closeSaveCenter()">✕</button></div>
+    <div class="modal-body save-actions">
+      <button class="save-action" onclick="exportSave()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3v12M7 10l5 5 5-5M5 20h14"/></svg><span>导出存档<small>复制存档字符串到剪贴板</small></span></button>
+      <button class="save-action" onclick="importSave()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 21V9M7 14l5-5 5 5M5 4h14"/></svg><span>导入存档<small>从已有存档字符串恢复进度</small></span></button>
     </div>
   </div>
 </div>
@@ -1342,6 +3076,71 @@ function clearAllSaves() {
 
 // ========== NPC 类 ==========
 
+const NPC_HEAD_COUNTS = { '男': 3, '女': 2 };
+const NPC_BODY_COUNTS = { '男': 3, '女': 4 };
+
+function hashNpcAppearanceSeed(value) {
+  let h = 2166136261;
+  const str = String(value || 'npc');
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+function createNpcAppearance(id, gender) {
+  let state = hashNpcAppearanceSeed(`${id}|${gender || '男'}`) || 0x6d2b79f5;
+  const next = max => {
+    state ^= state << 13;
+    state ^= state >>> 17;
+    state ^= state << 5;
+    return (state >>> 0) % max;
+  };
+  return {
+    head: next(NPC_HEAD_COUNTS[gender] || NPC_HEAD_COUNTS['男']),
+    body: next(NPC_BODY_COUNTS[gender] || NPC_BODY_COUNTS['男']),
+  };
+}
+
+function normalizeNpcAppearance(value, id, gender) {
+  const fallback = createNpcAppearance(id, gender);
+  const source = value && typeof value === 'object' ? value : {};
+  const headCount = NPC_HEAD_COUNTS[gender] || NPC_HEAD_COUNTS['男'];
+  const bodyCount = NPC_BODY_COUNTS[gender] || NPC_BODY_COUNTS['男'];
+  const oldBody = Number.isInteger(source.body) ? source.body
+    : Number.isInteger(source.upper) ? source.upper
+    : Number.isInteger(source.lower) ? source.lower
+    : fallback.body;
+  return {
+    head: Number.isInteger(source.head)
+      ? ((source.head % headCount) + headCount) % headCount
+      : fallback.head,
+    body: ((oldBody % bodyCount) + bodyCount) % bodyCount,
+  };
+}
+
+function getNpcHeadAsset(gender, index) {
+  const group = gender === '女' ? 'female' : 'male';
+  return `assets/npc-parts/${group}/head-canvas-${index + 1}.png?v=4`;
+}
+
+function getNpcBodyAsset(gender, index) {
+  const group = gender === '女' ? 'female' : 'male';
+  return `assets/npc-parts/${group}/body-canvas-${index + 1}.png?v=4`;
+}
+
+function renderNpcPaperDoll(npc) {
+  if (!npc) return '';
+  const look = normalizeNpcAppearance(npc.appearance, npc.id, npc.gender);
+  const head = getNpcHeadAsset(npc.gender, look.head);
+  const body = `<img class="npc-part npc-part-body" src="${getNpcBodyAsset(npc.gender, look.body)}" alt="">`;
+  return `<span class="npc-paperdoll" data-gender="${npc.gender === '女' ? '女' : '男'}" data-appearance-id="${npc.appearanceId || ''}" data-head="${look.head}" data-body="${look.body}">
+    ${body}
+    <img class="npc-part npc-part-head" src="${head}" alt="">
+  </span>`;
+}
+
 class NPC {
   constructor(d) {
     this.id = d.id || genId();
@@ -1365,6 +3164,8 @@ class NPC {
     this.spouse = d.spouse || null;
     this.masterNpcId = d.masterNpcId || null;
     this.role = d.role || null;
+    this.appearance = normalizeNpcAppearance(d.appearance, this.id, this.gender);
+    this.appearanceId = d.appearanceId || `look_${hashNpcAppearanceSeed(`${this.id}|${this.gender}`).toString(36)}`;
     // 旧存档没有此字段时自动补为空数组，最多保留最近八条关键往事。
     this.memories = Array.isArray(d.memories) ? d.memories.slice(-8) : [];
   }
@@ -1654,6 +3455,31 @@ class MapSystem {
 
 // ========== 游戏主控 ==========
 
+const ACTIVITY_SCENES = {
+  wilderness: { night:'assets/activity-meditate-bg-v2.png', day:'assets/scene-wilderness-day-v2.png' },
+  spirit: { night:'assets/scene-spirit-vein-v2.png', day:'assets/scene-spirit-vein-v2.png' },
+  paradise: { night:'assets/scene-paradise-v2.png', day:'assets/scene-paradise-v2.png' },
+  market: { night:'assets/scene-market-v2.png', day:'assets/scene-market-day-v2.png' },
+  sect: { night:'assets/scene-sect-v2.png', day:'assets/scene-sect-day-v2.png' },
+  ruin: { night:'assets/scene-ruin-v2.png', day:'assets/scene-ruin-day-v2.png' },
+};
+
+function getActivitySceneKey(cell) {
+  if (!cell) return 'wilderness';
+  if (cell.ruin || cell.rift) return 'ruin';
+  if (cell.type === 'market') return 'market';
+  if (cell.type === 'sect') return 'sect';
+  if (cell.qi >= 4) return 'paradise';
+  if (cell.qi === 3) return 'spirit';
+  return 'wilderness';
+}
+
+function getActivityScenePeriod(type, worldYear) {
+  if (type === 'map' || type === 'explore') return 'day';
+  if (type === 'meditate' || type === 'breakthrough' || type === 'time') return 'night';
+  return ((worldYear || 1) % 4 < 2) ? 'day' : 'night';
+}
+
 class Game {
   constructor() {
     this.player = null;
@@ -1666,6 +3492,39 @@ class Game {
     this.currentNPC = null;
     this.inEncounter = false;
     this.isDead = false;
+  }
+
+  setActivity(type, detail = {}) {
+    const presets = {
+      idle: ['初入仙途','静观天地，择路而行','状态安稳',22],
+      map: ['观览天地图','推演路线，寻找机缘','查看周遭',35],
+      explore: ['外出历练','踏山寻宝，访道问缘','寿元 -1',58],
+      rest: ['调息疗伤','吐纳灵气，平复伤势',detail.gain || '气血恢复',72],
+      meditate: ['闭关修炼','抱元守一，炼气归真',detail.gain || '修为精进',82],
+      breakthrough: ['冲击境界','灵力奔涌，道关在前',detail.gain || '成败未卜',94],
+      time: ['静观岁月','世事流转，因果暗生',detail.gain || '岁月流逝',48],
+    };
+    const value = presets[type] || presets.idle;
+    const cell = this.mapSystem.getCell(this.mapSystem.playerX, this.mapSystem.playerY);
+    const place = cell ? (cell.type === 'market' ? '坊市' : cell.type === 'sect' ? ((getSectById(cell.sectId)||{}).name || '宗门驻地') : `${QI_NAMES[cell.qi]}之地`) : '未知之地';
+    document.getElementById('activityTitle').textContent = value[0];
+    document.getElementById('activitySubtitle').textContent = value[1];
+    document.getElementById('activityGain').textContent = value[2];
+    document.getElementById('activityTime').textContent = detail.time || `修仙历 ${this.player.worldYear || 1} 年`;
+    document.getElementById('activityPeriod').textContent = detail.period || (type === 'idle' ? '此刻无事' : '行动进行中');
+    document.getElementById('activityStop').textContent = type === 'meditate' ? '提前出关' : '结束行动';
+    document.getElementById('activityScene').textContent = place;
+    document.getElementById('activityProgress').style.width = `${value[3]}%`;
+    document.querySelectorAll('[data-action]').forEach(el => el.classList.toggle('action-active', el.dataset.action === type));
+    const panel = document.getElementById('activityPanel');
+    const sceneKey = getActivitySceneKey(cell);
+    const scenePeriod = getActivityScenePeriod(type, this.player.worldYear);
+    panel.dataset.scene = sceneKey;
+    panel.dataset.action = type;
+    panel.dataset.period = scenePeriod;
+    panel.style.setProperty('--activity-scene-bg', `url('${ACTIVITY_SCENES[sceneKey][scenePeriod]}')`);
+    panel.classList.remove('activity-enter');
+    requestAnimationFrame(() => panel.classList.add('activity-enter'));
   }
 
   init(name, gender, origin) {
@@ -1719,6 +3578,7 @@ class Game {
     this.updateHeader();
     this.updateMarketBtn();
     this.updateNpcBtn();
+    this.setActivity('idle');
     const o = ORIGINS.find(x => x.id === this.player.origin);
     this.log(`【出身：${o ? o.name : '凡人'}】${o ? o.desc : ''}`, 'system');
     this.log('你踏上了修仙之路，前方道阻且长。', 'system');
@@ -2076,31 +3936,43 @@ class Game {
     document.getElementById('hpText').textContent = `气血 ${p.hp}/${p.hpMax}`;
 
     const btn = document.getElementById('btnBreakthrough');
+    const btnLabel = btn.querySelector('span');
     if (full) {
       const pill = getPillForBreakthrough(p.realmIndex, p.stageIndex);
       const hasPill = pill ? (p.inventory.pills[pill.id] || 0) > 0 : true;
       if (pill && !hasPill) {
         btn.className = 'btn';
         btn.disabled = true;
-        btn.textContent = `需要${pill.name}`;
+        btnLabel.textContent = `需要${pill.name}`;
       } else {
         btn.className = 'btn btn-glow';
         btn.disabled = false;
-        btn.textContent = '尝试突破';
+        btnLabel.textContent = '尝试突破';
       }
     } else {
       btn.className = 'btn';
       btn.disabled = atMax || !full;
-      btn.textContent = '尝试突破';
+      btnLabel.textContent = '尝试突破';
     }
   }
 
   updateNpcBtn() {
     const cell = this.mapSystem.getCell(this.mapSystem.playerX, this.mapSystem.playerY);
     const row = document.getElementById('npcBtnRow');
+    const visual = document.getElementById('activityNpc');
     const npcIds = (cell && cell.npcIds) ? cell.npcIds.filter(id => { const n = this.memoryStore.getById(id); return n && n.isAlive; }) : [];
     if (npcIds.length > 0) {
       row.classList.remove('hidden');
+      const sceneNpc = this.memoryStore.getById(npcIds[0]);
+      if (visual && sceneNpc) {
+        visual.classList.add('show');
+        visual.dataset.gender = sceneNpc.gender || '男';
+        visual.dataset.appearanceId = sceneNpc.appearanceId;
+        const figure = visual.querySelector('.activity-npc-figure');
+        if (figure) figure.innerHTML = renderNpcPaperDoll(sceneNpc);
+        document.getElementById('activityNpcName').textContent = sceneNpc.name + (npcIds.length > 1 ? ` +${npcIds.length - 1}` : '');
+        document.getElementById('activityNpcRealm').textContent = sceneNpc.getRealmName();
+      }
       const rescueNpc = npcIds.map(id => this.memoryStore.getById(id)).find(n => n && n.rescueTask);
       if (rescueNpc) {
         document.getElementById('npcBtnText').textContent = `救援 ${rescueNpc.name}（${rescueNpc.rescueTask.desc}）`;
@@ -2113,6 +3985,13 @@ class Game {
       return;
     }
     row.classList.add('hidden');
+    if (visual) {
+      visual.classList.remove('show');
+      visual.removeAttribute('data-gender');
+      visual.removeAttribute('data-appearance-id');
+      const figure = visual.querySelector('.activity-npc-figure');
+      if (figure) figure.innerHTML = '';
+    }
   }
 
   updateMarketBtn() {
@@ -2141,8 +4020,46 @@ class Game {
     const div = document.createElement('div');
     div.className = 'log-entry' + (type ? ' ' + type : '');
     div.innerHTML = text;
+    this.highlightLogNames(div);
     area.appendChild(div);
     requestAnimationFrame(() => { area.scrollTop = area.scrollHeight; setTimeout(() => area.scrollTop = area.scrollHeight, 100); });
+  }
+
+  // 战报统一标记人名：即使旧代码漏写了 span，临时 NPC 也能有相同的视觉提示。
+  highlightLogNames(container) {
+    if (!this.player) return;
+    const nameClasses = new Map();
+    if (this.player.name) nameClasses.set(this.player.name, 'player-name');
+    for (const npc of this.memoryStore.getAll()) {
+      if (npc.name && npc.name !== this.player.name) nameClasses.set(npc.name, 'npc-name');
+    }
+    if (this.currentNPC && this.currentNPC.name && this.currentNPC.name !== this.player.name) {
+      nameClasses.set(this.currentNPC.name, 'npc-name');
+    }
+    const names = [...nameClasses.keys()].filter(name => name.length > 1).sort((a, b) => b.length - a.length);
+    if (!names.length) return;
+    const escaped = names.map(name => name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    const pattern = new RegExp(`(${escaped.join('|')})`, 'g');
+    const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+    const textNodes = [];
+    let node;
+    while ((node = walker.nextNode())) textNodes.push(node);
+    for (const textNode of textNodes) {
+      pattern.lastIndex = 0;
+      if (!pattern.test(textNode.nodeValue) || textNode.parentElement.closest('.npc-name, .player-name')) continue;
+      pattern.lastIndex = 0;
+      const fragment = document.createDocumentFragment();
+      for (const part of textNode.nodeValue.split(pattern)) {
+        const cls = nameClasses.get(part);
+        if (cls) {
+          const span = document.createElement('span');
+          span.className = cls;
+          span.textContent = part;
+          fragment.appendChild(span);
+        } else if (part) fragment.appendChild(document.createTextNode(part));
+      }
+      textNode.parentNode.replaceChild(fragment, textNode);
+    }
   }
 
   hideAllActions() {
@@ -2547,6 +4464,7 @@ class Game {
 
     this.updateHeader();
     this.updateMarketBtn();
+    this.setActivity('idle');
     this.save();
     closeMap();
 
@@ -2560,6 +4478,7 @@ class Game {
   // ===== 探索 =====
   doExplore() {
     if (this.isDead || this.inEncounter) return;
+    this.setActivity('explore');
     showScenePopup('explore', '探 索', 1200);
     this.trackStat('explored');
 
@@ -3818,12 +5737,14 @@ class Game {
       return;
     }
 
+    this.setActivity('rest');
     showScenePopup('meditate', '修 整 疗 伤', 1500);
     this.worldTick(1);
     if (this.isDead) return;
 
     const heal = Math.floor(this.player.hpMax * (0.3 + Math.random() * 0.3));
     this.player.hp = Math.min(this.player.hpMax, this.player.hp + heal);
+    this.setActivity('rest', { gain: `气血 +${heal}` });
     this.log(`你原地修整一年，恢复气血 +${heal}。（${this.player.hp}/${this.player.hpMax}）`, 'success');
 
     if (Math.random() < 0.3) {
@@ -3840,6 +5761,7 @@ class Game {
   meditate() {
     if (this.isDead || this.inEncounter) return;
 
+    this.setActivity('meditate');
     showScenePopup('meditate', '闭 关 修 炼');
     const mYears = REALMS[this.player.realmIndex].meditateYears;
     const yearsSpent = randInt(mYears[0], mYears[1]);
@@ -3871,6 +5793,7 @@ class Game {
     const bonus = (1 + this.player.realmIndex * 0.3) * qiMult * sectMult * masterMult;
     const expGain = Math.floor(baseExp * bonus);
     this.player.exp = Math.min(this.player.exp + expGain, curRealm.expPerStage);
+    this.setActivity('meditate', { gain: `修为 +${expGain}`, time: `闭关 ${yearsSpent} 年`, period: `第 ${yearsSpent} / ${yearsSpent} 年` });
 
     const sectText = sectObj ? ` [${sectObj.name}+${Math.round((sectMult-1)*100)}%]` : '';
     const masterText = this.player.master ? ' [师父指点+20%]' : '';
@@ -3907,6 +5830,7 @@ class Game {
     if (this.isDead || this.inEncounter) return;
     if (!canBreakthrough(this.player)) return;
 
+    this.setActivity('breakthrough');
     const curRealm = REALMS[this.player.realmIndex];
     const isMajor = this.player.stageIndex >= curRealm.stages.length - 1;
     const pill = getPillForBreakthrough(this.player.realmIndex, this.player.stageIndex);
@@ -3970,6 +5894,7 @@ class Game {
     if (this.isDead || this.inEncounter) return;
     const baseYears = Math.max(2, this.player.realmIndex * 3 + 2);
     const years = randInt(baseYears, baseYears * 3);
+    this.setActivity('time', { gain: `岁月 +${years} 年`, time: `推演 ${years} 年` });
     this.worldTick(years);
     if (this.isDead) return;
 
@@ -4745,11 +6670,12 @@ function renderMap() {
 
   const curCell = ms.getCell(ms.playerX, ms.playerY);
   const locDesc = curCell.type === 'market' ? '坊市' : `灵气：${QI_NAMES[curCell.qi]}（x${QI_MULT[curCell.qi]}）`;
-  document.getElementById('mapInfo').textContent = `位置（${ms.playerX+1},${ms.playerY+1}）${locDesc} · 移动范围${moveRange}格`;
+  document.getElementById('mapInfo').innerHTML = `<strong>当前位置（${ms.playerX+1},${ms.playerY+1}）</strong>　<em>${locDesc}</em>　可行 ${moveRange} 格`;
 }
 
 // ===== 记忆录 =====
 function showMemory() {
+  setQuickNavActive('memory');
   document.getElementById('menuDropdown').classList.remove('show');
   const body = document.getElementById('memoryBody');
   const all = game.memoryStore.getAll();
@@ -4786,9 +6712,14 @@ function showMemory() {
       card.className = 'npc-card' + (npc.isAlive ? '' : ' dead');
       card.style.cursor = (npc.isAlive && !isMinor) ? 'pointer' : 'default';
       card.innerHTML = `
-        <div class="name">${npc.name} (${npc.gender}) ${statusTag}</div>
-        <div class="info">${npc.sect} · ${isMinor ? '尚未修炼' : npc.getRealmName()} · ${PERSONALITIES[npc.personality].name}</div>
-        <div class="relation ${rc}">${label}（好感度：${rel}）</div>
+        <div class="npc-card-main">
+          <div class="npc-card-avatar">${renderNpcPaperDoll(npc)}</div>
+          <div class="npc-card-copy">
+            <div class="name">${npc.name} (${npc.gender}) ${statusTag}</div>
+            <div class="info">${npc.sect} · ${isMinor ? '尚未修炼' : npc.getRealmName()} · ${PERSONALITIES[npc.personality].name}</div>
+            <div class="relation ${rc}">${label}（好感度：${rel}）</div>
+          </div>
+        </div>
         ${isMinor ? '' : `<div class="npc-actions hidden" id="npcAct_${npc.id}"></div>`}
       `;
       if (npc.isAlive && !isMinor) {
@@ -5023,7 +6954,7 @@ function npcAction(npcId, action) {
   }
 }
 
-function closeMemory() { document.getElementById('memoryModal').classList.remove('show'); }
+function closeMemory() { document.getElementById('memoryModal').classList.remove('show'); setQuickNavActive(); }
 
 function switchMemTab(tab) {
   document.getElementById('memoryBody').classList.toggle('hidden', tab !== 'list');
@@ -6012,6 +7943,7 @@ function finishTournament(champion) {
 
 // ===== 背包 =====
 function showInventory() {
+  setQuickNavActive('inventory');
   document.getElementById('menuDropdown').classList.remove('show');
   const body = document.getElementById('inventoryBody');
   body.innerHTML = '';
@@ -6114,7 +8046,41 @@ function showInventory() {
 
   document.getElementById('inventoryModal').classList.add('show');
 }
-function closeInventory() { document.getElementById('inventoryModal').classList.remove('show'); }
+function closeInventory() { document.getElementById('inventoryModal').classList.remove('show'); setQuickNavActive(); }
+
+function setQuickNavActive(key) {
+  document.querySelectorAll('.quick-nav-btn').forEach(btn => btn.classList.toggle('is-active', btn.dataset.nav === key));
+}
+
+function showPlayerStatus() {
+  setQuickNavActive('status');
+  const p = game.player;
+  const origin = ORIGINS.find(o => o.id === p.origin);
+  const sect = p.sect ? getSectById(p.sect) : null;
+  const cell = game.mapSystem.getCell(game.mapSystem.playerX, game.mapSystem.playerY);
+  const skill = p.activeSkill ? getSkillById(p.activeSkill) : null;
+  const body = document.getElementById('playerStatusBody');
+  body.innerHTML = `
+    <div class="status-hero">
+      <div class="status-name">${p.name}</div>
+      <div class="status-realm">${getRealmFullName(p.realmIndex,p.stageIndex)} · ${sect ? sect.name : '散修'}</div>
+    </div>
+    <div class="status-grid">
+      <div class="status-stat"><span>出身</span><strong>${origin ? origin.name : '凡人'}</strong></div>
+      <div class="status-stat"><span>战力</span><strong>${game.getPlayerCombatPower()}</strong></div>
+      <div class="status-stat"><span>修为</span><strong>${p.exp} / ${REALMS[p.realmIndex].expPerStage}</strong></div>
+      <div class="status-stat"><span>气血</span><strong>${p.hp} / ${p.hpMax}</strong></div>
+      <div class="status-stat"><span>剩余寿元</span><strong>${p.lifeCurrent} 年</strong></div>
+      <div class="status-stat"><span>灵石</span><strong>${p.inventory.lingshi}</strong></div>
+      <div class="status-stat"><span>当前位置</span><strong>（${game.mapSystem.playerX+1},${game.mapSystem.playerY+1}）</strong></div>
+      <div class="status-stat"><span>当地灵气</span><strong>${QI_NAMES[cell.qi]} ×${QI_MULT[cell.qi]}</strong></div>
+      <div class="status-stat" style="grid-column:1/-1"><span>当前功法</span><strong>${skill ? skill.name : '尚未装备'}</strong></div>
+    </div>`;
+  document.getElementById('playerStatusModal').classList.add('show');
+}
+function closePlayerStatus() { document.getElementById('playerStatusModal').classList.remove('show'); setQuickNavActive(); }
+function showSaveCenter() { setQuickNavActive('save'); document.getElementById('saveCenterModal').classList.add('show'); }
+function closeSaveCenter() { document.getElementById('saveCenterModal').classList.remove('show'); setQuickNavActive(); }
 
 // ===== 其他 =====
 function toggleMenu(e) {
@@ -6573,10 +8539,12 @@ function exportSave() {
   document.body.removeChild(ta);
   if (navigator.clipboard) navigator.clipboard.writeText(str);
   game.log('存档已复制到剪贴板！可粘贴保存到备忘录或发送给自己。', 'system');
+  closeSaveCenter();
 }
 
 function importSave() {
   document.getElementById('menuDropdown').classList.remove('show');
+  closeSaveCenter();
   const str = prompt('粘贴存档字符串：');
   if (!str) return;
   try {
@@ -6596,5 +8564,11 @@ function importSave() {
   else renderNameOptions(generateNameOptions());
 })();
 </script>
+<!-- QADC-FX-START -->
+<script src="qadc-motion-fx/anime.min.js"></script>
+<script src="qadc-motion-fx/fx-sdk.js"></script>
+<script src="qadc-motion-fx/qadc-fx-config.js"></script>
+<script src="qadc-motion-fx/qadc-runtime.js"></script>
+<!-- QADC-FX-END -->
 </body>
 </html>
