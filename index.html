@@ -2366,6 +2366,61 @@ body::before {
     line-height:1.45;
   }
 }
+
+/* 手机短视口压缩：场景与操作区让位给记录区和底部导航。 */
+@supports (height:100dvh) {
+  html,
+  body { height:100dvh; }
+}
+@media (max-width:600px) {
+  .activity-panel {
+    flex:0 0 clamp(160px,22dvh,185px);
+    height:clamp(160px,22dvh,185px);
+    min-height:160px;
+    max-height:185px;
+  }
+  .world-year-bar {
+    flex-basis:30px;
+    min-height:30px;
+    padding:4px 0;
+  }
+  #gameScreen .actions {
+    flex:0 0 auto;
+    min-height:0;
+    max-height:none;
+    overflow:visible;
+    padding:4px 10px 5px;
+  }
+  #gameScreen #mainActions:not(.hidden) {
+    min-height:0;
+    gap:4px;
+  }
+  #gameScreen #mainActions > .btn-row {
+    flex:0 0 42px;
+    height:42px;
+    min-height:42px;
+    gap:6px;
+    margin:0;
+  }
+  #gameScreen #mainActions > .btn-row .btn[data-action] {
+    height:42px;
+    min-height:42px;
+    padding-top:3px;
+    padding-bottom:3px;
+    border-width:5px;
+    box-shadow:0 2px 0 #07110e,0 3px 7px rgba(0,0,0,.18);
+  }
+  .quick-nav {
+    flex:0 0 calc(62px + env(safe-area-inset-bottom));
+    min-height:calc(62px + env(safe-area-inset-bottom));
+    padding:3px 7px calc(4px + env(safe-area-inset-bottom));
+  }
+  .quick-nav-btn {
+    min-height:54px;
+    gap:1px;
+  }
+  .quick-nav-icon { width:21px; height:21px; }
+}
 </style>
 </head>
 <body>
