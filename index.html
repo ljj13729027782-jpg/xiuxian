@@ -2446,6 +2446,130 @@ body::before {
     margin-top:0;
   }
 }
+
+/* 手机角色栏：数据不再硬塞成四个窄列，改成三项上排、位置通栏。 */
+@media (max-width:600px) {
+  #gameScreen .header .character-card {
+    grid-template-columns:minmax(112px,1.05fr) minmax(0,1.8fr) 22px;
+    grid-template-areas:"identity stats settings";
+    gap:4px;
+  }
+  #gameScreen .header .character-stats {
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    grid-template-rows:repeat(2,minmax(0,1fr));
+    gap:3px;
+  }
+  #gameScreen .header .character-stat {
+    height:auto;
+    min-height:0;
+    padding:1px 3px;
+    flex-direction:row;
+    justify-content:center;
+    align-items:center;
+    gap:3px;
+    overflow:hidden;
+  }
+  #gameScreen .header .character-stat-copy {
+    flex-direction:row;
+    justify-content:center;
+    align-items:baseline;
+    gap:3px;
+    white-space:nowrap;
+  }
+  #gameScreen .header .character-stat-copy small,
+  #gameScreen .header .character-life > span,
+  #gameScreen .header .character-life > small {
+    flex:0 0 auto;
+    font-size:8px;
+  }
+  #gameScreen .header .character-stat strong,
+  #gameScreen .header .character-life > strong {
+    flex:0 0 auto;
+    font-size:10px;
+    line-height:1;
+  }
+  #gameScreen .header .character-position {
+    grid-column:1 / -1;
+    justify-content:flex-start;
+    padding-left:7px;
+    padding-right:5px;
+  }
+  #gameScreen .header .character-position .character-stat-copy {
+    flex:1 1 auto;
+    justify-content:flex-start;
+    min-width:0;
+  }
+  #gameScreen .header .character-position #posQi {
+    display:inline;
+    max-width:none;
+    overflow:visible;
+    text-overflow:clip;
+  }
+  #gameScreen .header #playerFollowers,
+  #gameScreen .header #playerInfamy {
+    flex:0 0 auto;
+    margin-left:auto;
+    font-size:8px;
+    white-space:nowrap;
+  }
+  #gameScreen .header .menu-btn {
+    position:static;
+    grid-area:settings;
+    align-self:start;
+    justify-self:center;
+    width:22px;
+    height:22px;
+    padding:2px;
+  }
+  #gameScreen .header .menu-btn svg {
+    width:15px;
+    height:15px;
+  }
+}
+
+/* 底栏重构：横向图标与文字；使用九宫格描边，不压扁旧按钮整图。 */
+@media (max-width:600px) {
+  .quick-nav {
+    flex:0 0 calc(50px + env(safe-area-inset-bottom));
+    min-height:calc(50px + env(safe-area-inset-bottom));
+    gap:4px;
+    padding:4px 7px calc(4px + env(safe-area-inset-bottom));
+  }
+  .quick-nav-btn,
+  .quick-nav-btn.is-active {
+    min-width:0;
+    min-height:42px;
+    padding:0 5px;
+    flex-direction:row;
+    align-items:center;
+    justify-content:center;
+    gap:5px;
+    border:4px solid transparent;
+    border-image:url('assets/ui-frame-9slice-master-v1.png') 78 / 4px / 0 stretch;
+    background-color:#173328;
+    background-image:linear-gradient(180deg,rgba(35,72,58,.96),rgba(17,42,33,.98));
+    background-size:auto;
+    box-shadow:inset 0 0 0 1px rgba(8,18,14,.78);
+    clip-path:none;
+    font-size:10px;
+    letter-spacing:1px;
+    white-space:nowrap;
+  }
+  .quick-nav-btn.is-active {
+    color:#e8faff;
+    background-image:linear-gradient(180deg,rgba(36,91,76,.98),rgba(18,53,43,.98));
+    filter:none;
+  }
+  .quick-nav-icon {
+    flex:0 0 18px;
+    width:18px;
+    height:18px;
+  }
+  .quick-nav-btn > span {
+    min-width:0;
+    line-height:1;
+  }
+}
 </style>
 </head>
 <body>
@@ -2502,6 +2626,9 @@ body::before {
           <span class="character-stat-copy"><small>当前位置</small><strong><span id="playerPos"></span><span id="posQi"></span></strong></span><span id="playerInfamy"></span>
         </div>
       </div>
+      <button class="menu-btn" aria-label="设置" title="设置" onclick="toggleMenu(event)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" shape-rendering="crispEdges"><path d="M9 2h6v3h3v3h3v8h-3v3h-3v3H9v-3H6v-3H3V8h3V5h3V2Zm1 6v2H8v4h2v2h4v-2h2v-4h-2V8h-4Zm1 3h2v2h-2v-2Z"/></svg>
+      </button>
     </div>
     <div class="bars-wrap">
       <div class="progress-bar">
@@ -2513,9 +2640,6 @@ body::before {
         <div id="hpText" class="progress-text"></div>
       </div>
     </div>
-    <button class="menu-btn" aria-label="设置" title="设置" onclick="toggleMenu(event)">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" shape-rendering="crispEdges"><path d="M9 2h6v3h3v3h3v8h-3v3h-3v3H9v-3H6v-3H3V8h3V5h3V2Zm1 6v2H8v4h2v2h4v-2h2v-4h-2V8h-4Zm1 3h2v2h-2v-2Z"/></svg>
-    </button>
     <div id="menuDropdown" class="menu-dropdown">
       <button class="menu-item" onclick="showAiSettings()">AI设置</button>
       <button class="menu-item" onclick="restartGame()">重新开始</button>
