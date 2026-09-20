@@ -2421,6 +2421,31 @@ body::before {
   }
   .quick-nav-icon { width:21px; height:21px; }
 }
+
+/* 主界面取消题头：角色信息顶到首屏，释放的高度全部交给历练记录。 */
+#gameScreen .header {
+  padding-top:5px;
+}
+#gameScreen .header .menu-btn {
+  top:9px;
+  right:13px;
+  width:24px;
+  height:24px;
+  padding:2px;
+  z-index:3;
+}
+#gameScreen .header .menu-btn svg {
+  width:16px;
+  height:16px;
+}
+@media (max-width:600px) {
+  #gameScreen .header {
+    padding-top:5px;
+  }
+  #gameScreen .header .character-card {
+    margin-top:0;
+  }
+}
 </style>
 </head>
 <body>
@@ -2451,7 +2476,6 @@ body::before {
 
 <div id="gameScreen" class="hidden">
   <div class="header">
-    <h1>修 仙 录</h1>
     <div class="character-card">
       <div class="character-card-head">
         <div class="character-avatar" aria-hidden="true"></div>
