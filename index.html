@@ -2685,6 +2685,18 @@ body::before {
   height:18px;
 }
 .quick-nav-btn > span { min-width:0; line-height:1; }
+
+/* 历练记录专用窄框：九宫格只绘制边和角，禁止 fill 形成双层黑框。 */
+#gameScreen .log-area {
+  border:5px solid transparent;
+  border-image-source:url('assets/ui-jade-frame-minimal-9slice.png');
+  border-image-slice:86;
+  border-image-width:5px;
+  border-image-outset:0;
+  border-image-repeat:stretch;
+  background-clip:padding-box;
+  outline:0;
+}
 </style>
 </head>
 <body>
