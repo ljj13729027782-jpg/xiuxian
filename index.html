@@ -2986,6 +2986,10 @@ body::before {
   height:82%;
   background-image:url('assets/activity-npc-sprite.png');
 }
+.scene-simple-actor.is-npc.has-paperdoll { background-image:none; }
+.scene-simple-actor.is-npc.is-female { background-image:url('assets/npc-female-1.png'); }
+.scene-simple-actor.is-npc.is-male { background-image:url('assets/npc-male-1.png'); }
+.scene-simple-actor.is-npc .npc-paperdoll { width:100%; height:100%; }
 .scene-simple-title {
   color:#f0d083;
   font:900 20px/1.3 "STKaiti","KaiTi",serif;
@@ -9055,11 +9059,19 @@ function showScenePopup(type, title, duration) {
   const safeTitle = String(title || '').replace(/[&<>"']/g, ch => ({
     '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
   })[ch]);
+  const currentNpcFigure = document.querySelector('#activityNpc .activity-npc-figure');
+  const currentNpcMarkup = currentNpcFigure ? currentNpcFigure.innerHTML.trim() : '';
+  const fallbackPartnerClass = game.player && game.player.gender === '女' ? 'is-male' : 'is-female';
+  const partnerActor = currentNpcMarkup
+    ? `<div class="scene-simple-actor is-npc has-paperdoll">${currentNpcMarkup}</div>`
+    : `<div class="scene-simple-actor is-npc ${fallbackPartnerClass}"></div>`;
 
   let actors = '';
   if (sceneType === 'breakthrough') {
     actors = '<div class="scene-simple-actor is-seated"></div>';
-  } else if (['combat','monster','dual','bond'].includes(sceneType)) {
+  } else if (['dual','bond'].includes(sceneType)) {
+    actors = `<div class="scene-simple-actor"></div>${partnerActor}`;
+  } else if (['combat','monster'].includes(sceneType)) {
     actors = '<div class="scene-simple-actor"></div><div class="scene-simple-actor is-npc"></div>';
   } else if (['explore','danger','success'].includes(sceneType)) {
     actors = '<div class="scene-simple-actor"></div>';
