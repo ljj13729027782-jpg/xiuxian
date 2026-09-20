@@ -2570,6 +2570,121 @@ body::before {
     line-height:1;
   }
 }
+
+/* 应用本身始终不超过 500px：以下结构必须全局生效，不能依赖浏览器视口宽度。 */
+#gameScreen .header .character-card {
+  grid-template-columns:clamp(112px,31%,140px) minmax(0,1fr) 24px;
+  grid-template-rows:1fr;
+  grid-template-areas:"identity stats settings";
+  gap:4px;
+}
+#gameScreen .header .character-stats {
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  grid-template-rows:repeat(2,minmax(0,1fr));
+  gap:3px;
+}
+#gameScreen .header .character-stat {
+  height:auto;
+  min-height:0;
+  padding:1px 3px;
+  flex-direction:row;
+  justify-content:center;
+  align-items:center;
+  gap:3px;
+  overflow:hidden;
+}
+#gameScreen .header .character-stat svg { display:none; }
+#gameScreen .header .character-stat-copy {
+  min-width:0;
+  flex-direction:row;
+  justify-content:center;
+  align-items:baseline;
+  gap:3px;
+  white-space:nowrap;
+}
+#gameScreen .header .character-stat-copy small,
+#gameScreen .header .character-life > span,
+#gameScreen .header .character-life > small {
+  flex:0 0 auto;
+  font-size:8px;
+}
+#gameScreen .header .character-stat strong,
+#gameScreen .header .character-life > strong {
+  flex:0 0 auto;
+  font-size:10px;
+  line-height:1;
+}
+#gameScreen .header .character-position {
+  grid-column:1 / -1;
+  justify-content:flex-start;
+  padding-left:7px;
+  padding-right:5px;
+}
+#gameScreen .header .character-position .character-stat-copy {
+  flex:1 1 auto;
+  justify-content:flex-start;
+}
+#gameScreen .header .character-position #posQi {
+  display:inline;
+  max-width:none;
+  overflow:visible;
+  text-overflow:clip;
+}
+#gameScreen .header #playerFollowers,
+#gameScreen .header #playerInfamy {
+  flex:0 0 auto;
+  margin-left:auto;
+  font-size:8px;
+  white-space:nowrap;
+}
+#gameScreen .header .menu-btn {
+  position:static;
+  grid-area:settings;
+  align-self:start;
+  justify-self:center;
+  width:22px;
+  height:22px;
+  padding:2px;
+}
+#gameScreen .header .menu-btn svg { width:15px; height:15px; }
+
+.quick-nav {
+  flex:0 0 calc(50px + env(safe-area-inset-bottom));
+  min-height:calc(50px + env(safe-area-inset-bottom));
+  gap:4px;
+  padding:4px 7px calc(4px + env(safe-area-inset-bottom));
+}
+.quick-nav-btn,
+.quick-nav-btn.is-active {
+  min-width:0;
+  min-height:42px;
+  padding:0 5px;
+  flex-direction:row;
+  align-items:center;
+  justify-content:center;
+  gap:5px;
+  border:4px solid transparent;
+  border-image:url('assets/ui-frame-9slice-master-v1.png') 78 / 4px / 0 stretch;
+  background-color:#173328;
+  background-image:linear-gradient(180deg,rgba(35,72,58,.96),rgba(17,42,33,.98));
+  background-size:auto;
+  box-shadow:inset 0 0 0 1px rgba(8,18,14,.78);
+  clip-path:none;
+  font-size:10px;
+  letter-spacing:1px;
+  white-space:nowrap;
+}
+.quick-nav-btn.is-active {
+  color:#e8faff;
+  background-image:linear-gradient(180deg,rgba(36,91,76,.98),rgba(18,53,43,.98));
+  filter:none;
+}
+.quick-nav-icon {
+  flex:0 0 18px;
+  width:18px;
+  height:18px;
+}
+.quick-nav-btn > span { min-width:0; line-height:1; }
 </style>
 </head>
 <body>
