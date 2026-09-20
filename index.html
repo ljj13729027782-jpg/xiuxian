@@ -2697,6 +2697,249 @@ body::before {
   background-clip:padding-box;
   outline:0;
 }
+
+/* 全屏重点动作演出：复用现有高质量像素场景与人物切图。 */
+.scene-popup.scene-cinematic {
+  position:fixed;
+  inset:0;
+  z-index:300;
+  width:100%;
+  max-width:500px;
+  height:100dvh;
+  margin:0 auto;
+  display:block;
+  overflow:hidden;
+  isolation:isolate;
+  background:#07110f;
+  pointer-events:none;
+  animation:cinemaOpen 400ms ease-out both;
+}
+.scene-cinematic.cinema-leave { animation:cinemaClose 400ms ease-out both; }
+.cinema-backdrop,
+.cinema-shade,
+.cinema-clouds,
+.cinema-light,
+.cinema-effects,
+.cinema-actors { position:absolute; inset:0; }
+.cinema-backdrop {
+  z-index:0;
+  background-position:left center;
+  background-size:cover;
+  image-rendering:pixelated;
+  transform:scale(1.06);
+  animation:cinemaDrift 2.4s ease-out both;
+}
+.cinema-shade {
+  z-index:1;
+  background:
+    linear-gradient(180deg,rgba(4,10,9,.34),transparent 28%,transparent 66%,rgba(3,8,7,.8)),
+    radial-gradient(circle at 50% 48%,transparent 16%,rgba(2,7,6,.52) 88%);
+}
+.cinema-clouds {
+  z-index:2;
+  left:-45%;
+  width:190%;
+  opacity:.25;
+  background:url('assets/clouds-overlay.png') 0 52%/50% 52% repeat-x;
+  image-rendering:pixelated;
+  animation:cinemaClouds 8s linear infinite;
+}
+.cinema-light {
+  z-index:3;
+  opacity:.72;
+  mix-blend-mode:screen;
+  background:radial-gradient(circle at 50% 52%,var(--cinema-light,rgba(83,224,237,.32)),transparent 44%);
+  animation:cinemaLight 1.6s ease-in-out infinite;
+}
+.cinema-actors { z-index:5; }
+.cinema-actor {
+  position:absolute;
+  bottom:18%;
+  width:39%;
+  height:52%;
+  background-position:center bottom;
+  background-size:contain;
+  background-repeat:no-repeat;
+  image-rendering:pixelated;
+  filter:drop-shadow(0 9px 7px rgba(0,0,0,.48));
+}
+.cinema-player {
+  inset:0;
+  width:auto;
+  height:auto;
+  transform:none;
+  background-image:url('assets/activity-standing-person.png');
+  /* 站立素材保留整张透明画布，按场景高度定标，和 NPC 共用同一人物尺度。 */
+  background-size:auto 38%;
+  background-position:20% 62%;
+  animation:cinemaHeroIn 600ms ease-out both;
+}
+.cinema-player.is-seated {
+  inset:0;
+  width:auto;
+  height:auto;
+  background-image:url('assets/activity-meditate-person.png');
+  background-size:cover;
+  background-position:20% center;
+}
+.cinema-npc {
+  right:8%;
+  bottom:18%;
+  width:27%;
+  height:44%;
+  background-image:url('assets/activity-npc-sprite.png');
+  animation:cinemaNpcIn 600ms ease-out both;
+}
+.scene-combat .cinema-npc,
+.scene-monster .cinema-npc,
+.scene-dual .cinema-npc,
+.scene-bond .cinema-npc { right:4%; }
+.scene-dual .cinema-npc,
+.scene-bond .cinema-npc { right:10%; }
+.cinema-effects { z-index:6; }
+.cinema-aura {
+  position:absolute;
+  left:31%;
+  top:54%;
+  width:min(76vw,380px);
+  aspect-ratio:1;
+  transform:translate(-50%,-50%);
+  background:url('assets/qi-orbit.png') center/contain no-repeat;
+  image-rendering:pixelated;
+  filter:drop-shadow(0 0 8px rgba(86,235,246,.68));
+  animation:cinemaAura 2.4s linear infinite;
+}
+.cinema-aura.aura-back { z-index:-1; opacity:.48; animation-direction:reverse; animation-duration:3.2s; }
+.cinema-particle {
+  position:absolute;
+  left:var(--x);
+  top:var(--y);
+  width:var(--size);
+  height:var(--size);
+  background:var(--spark,#79e8ef);
+  box-shadow:0 0 6px var(--spark,#79e8ef);
+  image-rendering:pixelated;
+  animation:cinemaParticle var(--speed) ease-out var(--delay) infinite;
+}
+.cinema-slash {
+  position:absolute;
+  left:12%;
+  top:45%;
+  width:76%;
+  height:6px;
+  opacity:0;
+  background:linear-gradient(90deg,transparent,#fff7c2 32%,#67e8f2 58%,transparent);
+  box-shadow:0 0 8px #fff7c2,0 0 18px #67e8f2;
+  transform:rotate(-24deg) scaleX(.15);
+  transform-origin:center;
+  animation:cinemaSlash 1.15s ease-out infinite;
+}
+.cinema-slash.slash-b { transform:rotate(21deg) scaleX(.15); animation-delay:.18s; }
+.cinema-lightning {
+  position:absolute;
+  left:50%;
+  top:-8%;
+  width:8px;
+  height:68%;
+  transform:translateX(-50%) skewX(-13deg);
+  opacity:0;
+  background:linear-gradient(#fff,#e5c96b 38%,#5bdce9 82%,transparent);
+  box-shadow:0 0 10px #fff,0 0 25px #e5c96b;
+  animation:cinemaLightning 1.6s steps(2,end) infinite;
+}
+.cinema-relic {
+  position:absolute;
+  left:50%;
+  top:51%;
+  width:72px;
+  height:72px;
+  transform:translate(-50%,-50%) rotate(45deg);
+  border:5px double #f4d783;
+  background:radial-gradient(circle,#fff6c5 0 10%,#d3a743 12% 30%,#21483a 32% 62%,#0e1c17 64%);
+  box-shadow:0 0 18px #f0cc69,0 0 55px rgba(240,204,105,.58);
+  animation:cinemaRelic 1.8s ease-in-out infinite;
+}
+.cinema-thread {
+  position:absolute;
+  left:30%;
+  right:27%;
+  top:52%;
+  height:3px;
+  background:linear-gradient(90deg,transparent,#f0cc78 18%,#f0cc78 82%,transparent);
+  box-shadow:0 0 8px #f0cc78;
+  transform:scaleX(0);
+  animation:cinemaThread 1.2s ease-out .3s forwards;
+}
+.scene-dual .cinema-thread { background:linear-gradient(90deg,transparent,#ef7d9f 18%,#ef7d9f 82%,transparent); box-shadow:0 0 8px #ef7d9f; }
+.cinema-seal {
+  position:absolute;
+  left:50%;
+  top:48%;
+  width:140px;
+  height:140px;
+  transform:translate(-50%,-50%) scale(.2) rotate(-12deg);
+  border:4px double #edcf78;
+  box-shadow:inset 0 0 0 5px rgba(12,41,31,.78),0 0 26px rgba(237,207,120,.66);
+  opacity:0;
+  animation:cinemaSeal 1.5s ease-out .25s forwards;
+}
+.cinema-seal::before,
+.cinema-seal::after { content:''; position:absolute; background:#edcf78; opacity:.78; }
+.cinema-seal::before { left:18%; right:18%; top:48%; height:4px; }
+.cinema-seal::after { top:18%; bottom:18%; left:48%; width:4px; }
+.cinema-caption {
+  position:absolute;
+  z-index:9;
+  left:8%;
+  right:8%;
+  bottom:8%;
+  text-align:center;
+  color:#f3d58c;
+  font:900 clamp(22px,7vw,34px)/1.2 "STKaiti","KaiTi",serif;
+  letter-spacing:.42em;
+  text-indent:.42em;
+  text-shadow:0 2px #3b2b14,0 0 14px rgba(241,204,111,.45);
+  animation:cinemaCaption 600ms ease-out 250ms both;
+}
+.cinema-caption::before,
+.cinema-caption::after { content:'◆'; margin:0 12px; color:#9e7c3f; font-size:.42em; vertical-align:middle; }
+.scene-danger { --cinema-light:rgba(188,39,42,.42); }
+.scene-danger .cinema-backdrop,
+.scene-monster .cinema-backdrop { filter:saturate(.65) brightness(.55) hue-rotate(-8deg); }
+.scene-danger .cinema-shade,
+.scene-monster .cinema-shade { background:radial-gradient(circle at 50% 48%,transparent 8%,rgba(35,0,4,.76) 84%); }
+.scene-loot,
+.scene-success { --cinema-light:rgba(234,198,99,.42); }
+.scene-dual { --cinema-light:rgba(221,96,139,.32); }
+.scene-explore .cinema-backdrop { animation:cinemaExplore 2.4s ease-out both; }
+.scene-explore .cinema-player { animation:cinemaWalk 1.1s steps(2,end) infinite,cinemaHeroIn 600ms ease-out both; }
+.scene-combat .cinema-actors,
+.scene-monster .cinema-actors { animation:cinemaImpact 1.15s ease-in-out infinite; }
+
+@keyframes cinemaOpen { from{opacity:0} to{opacity:1} }
+@keyframes cinemaClose { to{opacity:0;filter:brightness(1.25)} }
+@keyframes cinemaDrift { from{transform:scale(1.1) translateX(-2%)} to{transform:scale(1.04) translateX(1%)} }
+@keyframes cinemaExplore { from{transform:scale(1.08) translateX(4%)} to{transform:scale(1.04) translateX(-4%)} }
+@keyframes cinemaClouds { to{transform:translateX(-25%)} }
+@keyframes cinemaLight { 50%{opacity:1;transform:scale(1.08)} }
+@keyframes cinemaHeroIn { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:translateY(0)} }
+@keyframes cinemaNpcIn { from{opacity:0;transform:translateX(28px)} to{opacity:1;transform:translateX(0)} }
+@keyframes cinemaWalk { 50%{translate:4px -3px} }
+@keyframes cinemaAura { to{transform:translate(-50%,-50%) rotate(360deg)} }
+@keyframes cinemaParticle { 0%{opacity:0;transform:translateY(24px) scale(.6)} 30%{opacity:1} 100%{opacity:0;transform:translateY(-90px) scale(.2)} }
+@keyframes cinemaSlash { 0%,35%{opacity:0;transform:rotate(-24deg) scaleX(.15)} 45%,60%{opacity:1;transform:rotate(-24deg) scaleX(1)} 72%,100%{opacity:0;transform:rotate(-24deg) scaleX(1.08)} }
+@keyframes cinemaLightning { 0%,72%,100%{opacity:0} 74%,82%{opacity:1} 84%{opacity:.25} 87%{opacity:1} 90%{opacity:0} }
+@keyframes cinemaRelic { 50%{transform:translate(-50%,-58%) rotate(135deg);filter:brightness(1.3)} }
+@keyframes cinemaThread { to{transform:scaleX(1)} }
+@keyframes cinemaSeal { 55%{opacity:1;transform:translate(-50%,-50%) scale(1.12) rotate(0)} 100%{opacity:.72;transform:translate(-50%,-50%) scale(1) rotate(0)} }
+@keyframes cinemaCaption { from{opacity:0;transform:translateY(12px);letter-spacing:.8em} to{opacity:1;transform:none} }
+@keyframes cinemaImpact { 50%{transform:translateX(2px)} 52%{transform:translateX(-2px)} }
+
+@media (prefers-reduced-motion:reduce) {
+  .scene-cinematic *,
+  .scene-cinematic *::before,
+  .scene-cinematic *::after { animation:none!important; }
+}
 </style>
 </head>
 <body>
@@ -8728,140 +8971,73 @@ const PIXEL_COLORS = {
 
 function showScenePopup(type, title, duration) {
   const el = document.getElementById('scenePopup');
-  const dur = duration || 1800;
-  if (type === 'combat' || type === 'monster') {
-    const leftArt = PIXEL_ART['combat_left'];
-    const rightArt = type === 'combat' ? PIXEL_ART['combat_right'] : PIXEL_ART['monster_right'];
-    function drawSprite(a) {
-      const c = document.createElement('canvas');
-      const sc = a.scale;
-      c.width = a.w * sc; c.height = a.data.length * sc;
-      const cx = c.getContext('2d');
-      for (let y = 0; y < a.data.length; y++)
-        for (let x = 0; x < a.data[y].length; x++) {
-          const color = PIXEL_COLORS[a.data[y][x]];
-          if (color) { cx.fillStyle = color; cx.fillRect(x*sc, y*sc, sc, sc); }
-        }
-      return c.toDataURL();
-    }
-    const leftImg = drawSprite(leftArt);
-    const rightImg = drawSprite(rightArt);
-    let sparkExtra = '<div style="position:absolute;inset:0;pointer-events:none"><div style="position:absolute;top:50%;left:50%;width:12px;height:12px;margin:-6px;background:#fff;border-radius:50%;animation:clashSpark 1.2s ease-out infinite;box-shadow:0 0 20px #f1c40f,0 0 40px #e67e22"></div></div>';
-    el.innerHTML = `<div class="scene-title">${title || ''}</div>
-      <div class="scene-pixel" style="width:240px;height:140px;position:relative">
-        <img src="${leftImg}" style="position:absolute;left:50%;top:50%;margin-left:-100px;margin-top:-54px;image-rendering:pixelated;animation:clashLeft 1.2s ease-in-out infinite">
-        <img src="${rightImg}" style="position:absolute;left:50%;top:50%;margin-left:16px;margin-top:-54px;image-rendering:pixelated;animation:clashRight 1.2s ease-in-out infinite">
-        ${sparkExtra}
-      </div>`;
-    el.classList.remove('hidden');
-    setTimeout(() => el.classList.add('hidden'), dur);
-    return;
+  if (!el) return;
+
+  clearTimeout(el._sceneExitTimer);
+  clearTimeout(el._sceneHideTimer);
+
+  const sceneType = ['meditate','breakthrough','explore','combat','monster','loot','dual','bond','danger','success'].includes(type)
+    ? type : 'success';
+  const dur = Math.max(Number(duration) || 2200, 1800);
+  const panel = document.getElementById('activityPanel');
+  const sceneBg = panel
+    ? getComputedStyle(panel).getPropertyValue('--activity-scene-bg').trim()
+    : '';
+  const safeTitle = String(title || '').replace(/[&<>"']/g, ch => ({
+    '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+  })[ch]);
+
+  const palettes = {
+    danger:['#d64747','#ff7777','#f0c75e'], monster:['#9e3150','#e34a4a','#d5a84e'],
+    loot:['#f4d783','#fff1b0','#c99b3d'], success:['#f4d783','#78e0cf','#fff1b0'],
+    dual:['#ef7d9f','#ffd0de','#f4d783'], bond:['#f4d783','#7edacb','#fff1b0'],
+    breakthrough:['#f4d783','#63dce8','#ffffff'], meditate:['#63dce8','#8af0ec','#f4d783'],
+    combat:['#f4d783','#64dce8','#ffffff'], explore:['#78dfd2','#f4d783','#ffffff']
+  };
+  const palette = palettes[sceneType] || palettes.success;
+  const particles = Array.from({length:18}, (_, i) => {
+    const x = 8 + ((i * 37) % 84);
+    const y = 18 + ((i * 29) % 68);
+    const size = 3 + (i % 4);
+    const speed = (1.35 + (i % 5) * .22).toFixed(2);
+    const delay = (-i * .13).toFixed(2);
+    return `<i class="cinema-particle" style="--x:${x}%;--y:${y}%;--size:${size}px;--speed:${speed}s;--delay:${delay}s;--spark:${palette[i % palette.length]}"></i>`;
+  }).join('');
+
+  let actors = '';
+  if (sceneType === 'meditate' || sceneType === 'breakthrough') {
+    actors = '<div class="cinema-actor cinema-player is-seated"></div>';
+  } else if (['combat','monster','dual','bond'].includes(sceneType)) {
+    actors = '<div class="cinema-actor cinema-player"></div><div class="cinema-actor cinema-npc"></div>';
+  } else if (['explore','danger','success'].includes(sceneType)) {
+    actors = '<div class="cinema-actor cinema-player"></div>';
   }
 
-  const art = PIXEL_ART[type];
-  if (!art) {
-    el.innerHTML = `<div class="scene-title" style="${type==='danger'?'color:var(--red);font-size:20px':''}">${title}</div>`;
-    el.classList.remove('hidden'); setTimeout(() => el.classList.add('hidden'), dur); return;
-  }
+  let effects = particles;
+  if (sceneType === 'meditate') effects += '<div class="cinema-aura aura-back"></div><div class="cinema-aura"></div>';
+  if (sceneType === 'breakthrough') effects += '<div class="cinema-aura aura-back"></div><div class="cinema-aura"></div><div class="cinema-lightning"></div>';
+  if (sceneType === 'combat' || sceneType === 'monster') effects += '<div class="cinema-slash"></div><div class="cinema-slash slash-b"></div>';
+  if (sceneType === 'monster' || sceneType === 'danger') effects += '<div class="cinema-lightning"></div>';
+  if (sceneType === 'loot') effects += '<div class="cinema-relic"></div>';
+  if (sceneType === 'dual' || sceneType === 'bond') effects += '<div class="cinema-thread"></div>';
+  if (sceneType === 'success') effects += '<div class="cinema-seal"></div>';
 
-  const canvas = document.createElement('canvas');
-  const s = art.scale;
-  canvas.width = art.w * s;
-  canvas.height = art.data.length * s;
-  canvas.style.imageRendering = 'pixelated';
-  const ctx = canvas.getContext('2d');
+  el.className = `scene-popup scene-cinematic scene-${sceneType}`;
+  el.innerHTML = `
+    <div class="cinema-backdrop"></div>
+    <div class="cinema-shade"></div>
+    <div class="cinema-clouds"></div>
+    <div class="cinema-light"></div>
+    <div class="cinema-actors">${actors}</div>
+    <div class="cinema-effects">${effects}</div>
+    <div class="cinema-caption">${safeTitle}</div>`;
+  el.querySelector('.cinema-backdrop').style.backgroundImage = sceneBg || "url('assets/activity-meditate-bg-v2.png')";
 
-  for (let y = 0; y < art.data.length; y++) {
-    for (let x = 0; x < art.data[y].length; x++) {
-      const ch = art.data[y][x];
-      const color = PIXEL_COLORS[ch];
-      if (color) {
-        ctx.fillStyle = color;
-        ctx.fillRect(x * s, y * s, s, s);
-      }
-    }
-  }
-
-  const imgUrl = canvas.toDataURL();
-  const imgTag = `<img src="${imgUrl}" style="image-rendering:pixelated;width:${art.w * s}px;height:${art.data.length * s}px">`;
-
-  let extra = '';
-  if (type === 'meditate') {
-    let dots = '<div class="qi-particles">';
-    const colors = ['#5dade2','#d4a853','#85c1e9','#f0d78c','#3498db','#e8b84a'];
-    for (let i = 0; i < 8; i++) {
-      const c = colors[i % colors.length];
-      const left = 20 + Math.floor(Math.random() * 60);
-      dots += `<div class="qi-dot" style="background:${c};left:${left}%;bottom:20%;animation-delay:${(i*0.3).toFixed(1)}s;animation-duration:${(1.5+Math.random()).toFixed(1)}s"></div>`;
-    }
-    for (let i = 0; i < 4; i++) {
-      const c = colors[i % colors.length];
-      dots += `<div class="qi-orbit" style="background:${c};width:${4+Math.floor(Math.random()*4)}px;height:${4+Math.floor(Math.random()*4)}px;animation-duration:${(2.5+i*0.5).toFixed(1)}s;animation-delay:${(i*0.6).toFixed(1)}s"></div>`;
-    }
-    dots += '</div>';
-    extra = dots;
-  } else if (type === 'combat') {
-    extra = `<div style="position:absolute;inset:0;pointer-events:none">
-      <div style="position:absolute;top:50%;left:50%;width:12px;height:12px;margin:-6px;background:#fff;border-radius:50%;animation:clashSpark 1.2s ease-out infinite;box-shadow:0 0 20px #f1c40f,0 0 40px #e67e22"></div>
-    </div>`;
-  } else if (type === 'monster') {
-    extra = `<div style="position:absolute;inset:0;pointer-events:none">
-      <div style="position:absolute;top:50%;left:50%;width:12px;height:12px;margin:-6px;background:#ff4444;border-radius:50%;animation:clashSpark 1s ease-out infinite;box-shadow:0 0 20px #8e44ad,0 0 40px #c0392b"></div>
-    </div>`;
-    // handled above in two-sprite rendering
-  } else if (type === 'monster') {
-    extra = '<div style="position:absolute;inset:0;animation:screenShake 0.3s infinite;"></div>';
-  } else if (type === 'loot') {
-    let fx = '<div class="qi-particles">';
-    const golds = ['#d4a853','#f0d78c','#fff','#e8b84a'];
-    for (let i = 0; i < 8; i++) {
-      const c = golds[i % golds.length];
-      fx += `<div class="qi-dot" style="background:${c};left:${(20+Math.random()*60).toFixed(0)}%;bottom:30%;animation-delay:${(i*0.15).toFixed(2)}s;animation-duration:${(1+Math.random()*0.6).toFixed(1)}s"></div>`;
-    }
-    fx += '</div>';
-    extra = fx;
-  } else if (type === 'dual') {
-    let fx = '<div class="qi-particles">';
-    const pinks = ['#e91e63','#f48fb1','#ff80ab'];
-    for (let i = 0; i < 6; i++) {
-      const c = pinks[i % pinks.length];
-      fx += `<div style="position:absolute;width:6px;height:6px;border-radius:50%;background:${c};left:${(20+Math.random()*60).toFixed(0)}%;top:${(20+Math.random()*60).toFixed(0)}%;animation:qiRise ${(1.5+Math.random()).toFixed(1)}s ease-out infinite;animation-delay:${(i*0.3).toFixed(1)}s"></div>`;
-    }
-    fx += '</div>';
-    extra = fx;
-  } else if (type === 'danger') {
-    let fx = '<div class="qi-particles">';
-    const reds = ['#c0392b','#e74c3c','#ff6666','#992222'];
-    for (let i = 0; i < 6; i++) {
-      const c = reds[i % reds.length];
-      fx += `<div style="position:absolute;width:5px;height:5px;border-radius:50%;background:${c};left:${(15+Math.random()*70).toFixed(0)}%;top:${(15+Math.random()*70).toFixed(0)}%;animation:qiRise ${(1+Math.random()*0.8).toFixed(1)}s ease-out infinite;animation-delay:${(i*0.2).toFixed(1)}s;opacity:0.8"></div>`;
-    }
-    fx += '</div>';
-    extra = fx;
-  } else if (type === 'breakthrough') {
-    let fx = '<div class="qi-particles">';
-    const brights = ['#d4a853','#f1c40f','#fff','#e8b84a','#5dade2','#85c1e9'];
-    for (let i = 0; i < 12; i++) {
-      const c = brights[i % brights.length];
-      fx += `<div class="qi-dot" style="background:${c};left:${(10+Math.random()*80).toFixed(0)}%;bottom:20%;animation-delay:${(i*0.12).toFixed(2)}s;animation-duration:${(0.8+Math.random()*0.6).toFixed(1)}s"></div>`;
-    }
-    for (let i = 0; i < 6; i++) {
-      const c = brights[i % brights.length];
-      fx += `<div class="qi-orbit" style="background:${c};width:${5+Math.floor(Math.random()*4)}px;height:${5+Math.floor(Math.random()*4)}px;animation-duration:${(1.5+i*0.4).toFixed(1)}s;animation-delay:${(i*0.3).toFixed(1)}s"></div>`;
-    }
-    fx += '</div>';
-    extra = fx;
-  } else if (type === 'success') {
-    extra = '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center"><div style="width:0;height:0;border-radius:50%;background:radial-gradient(circle,rgba(212,168,83,0.6),transparent 70%);animation:goldenBurst 1s ease-out forwards"></div></div>';
-  }
-
-  let wrapClass = '';
-  if (type === 'meditate') wrapClass = 'scene-canvas-wrap';
-  else if (type === 'explore') wrapClass = 'scene-walk';
-  else if (type === 'combat' || type === 'monster') wrapClass = '';
-  el.innerHTML = `<div class="scene-title">${title || ''}</div><div class="scene-pixel"><div class="${wrapClass}">${imgTag}${extra}</div></div>`;
-  el.classList.remove('hidden');
-  setTimeout(() => el.classList.add('hidden'), dur);
+  el._sceneExitTimer = setTimeout(() => el.classList.add('cinema-leave'), dur - 400);
+  el._sceneHideTimer = setTimeout(() => {
+    el.className = 'scene-popup hidden';
+    el.innerHTML = '';
+  }, dur);
 }
 
 function showAiSettings() {
